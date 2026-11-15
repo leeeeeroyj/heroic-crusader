@@ -1,0 +1,1644 @@
+<title>Heroic Crusader Concept Sheet</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jacquard+24&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Silkscreen:wght@400;700&display=swap">
+<style>
+/* Layout: a squire's illuminated vow-book read by beacon light. The live screen leads, then the squire and the townsfolk, the soured creatures, the wardens, the things you find, then the rules of the crusade. One deliberate dark look: night vellum with gold leaf. */
+:root {
+  --night: #10142a;     /* page ground, the kingdom under the gloam */
+  --vellum: #181e3a;    /* raised surfaces */
+  --line: #2d3560;      /* hairlines, empty cells */
+  --ink: #f1e9d4;       /* primary text, parchment */
+  --dim: #a7a5c2;       /* secondary text */
+  --gold: #f3b84a;      /* accent: beacon flame, selection, numbers */
+  --gloam: #9d7be0;     /* the dark that put the beacons out */
+  --leaf: #8fd07a;      /* healing, lit regions */
+  --font-display: "Jacquard 24", "Silkscreen", "Courier New", serif;
+  --font-pixel: "Silkscreen", "Courier New", monospace;
+  --font-body: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+  --step--1: 0.875rem; --step-0: 1.0625rem; --step-1: 1.3rem; --step-2: 2.2rem; --step-3: clamp(3rem, 10vw, 5.6rem);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--night); color: var(--ink); font-family: var(--font-body); font-size: var(--step-0); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1264px; margin: 0 auto; display: grid; gap: 56px; }
+h1, h2 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; }
+h3, .label { font-family: var(--font-pixel); font-weight: 400; text-wrap: balance; margin: 0; }
+h1 { font-size: var(--step-3); line-height: 0.95; color: var(--gold); text-shadow: 0 0 24px rgba(243, 184, 74, 0.25); }
+h2 { font-size: var(--step-2); line-height: 1.05; }
+h3 { font-size: var(--step-0); letter-spacing: 0.04em; }
+p { margin: 0; }
+.label { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); }
+.muted { color: var(--dim); }
+em { color: var(--ink); }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; padding-top: 40px; }
+header.top .pitch { max-width: 58ch; margin-top: 14px; color: var(--dim); font-size: var(--step-1); line-height: 1.35; }
+.actions { display: grid; gap: 8px; justify-items: end; }
+button.primary {
+  font-family: var(--font-pixel); font-size: 0.8125rem; letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--gold); color: var(--night); border: 0; padding: 12px 18px; cursor: pointer;
+  box-shadow: 4px 4px 0 var(--line);
+}
+button.primary:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--line); }
+button:focus-visible, canvas:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+#copy-status { font-size: var(--step--1); color: var(--dim); min-height: 1.5em; }
+#picks-text { width: min(420px, 100%); height: 140px; background: var(--vellum); color: var(--ink); border: 1px solid var(--line); font: 12px/1.4 monospace; }
+
+/* Screen */
+.screen-block { display: grid; gap: 16px; }
+.bezel { background: #070912; border: 1px solid var(--line); padding: clamp(6px, 1.5vw, 16px); box-shadow: 0 0 0 4px var(--vellum), 0 24px 60px -30px #000; }
+#screen { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 416 / 228; image-rendering: pixelated; touch-action: none; }
+.controls { display: grid; gap: 10px; }
+.keys { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; }
+.keys > .label { min-width: 104px; }
+.key { display: inline-flex; gap: 4px; align-items: center; }
+kbd {
+  font-family: var(--font-pixel); font-size: 0.75rem; min-width: 26px; padding: 4px 6px; text-align: center;
+  background: var(--vellum); border: 1px solid var(--line); border-bottom-width: 3px; color: var(--ink);
+}
+.pad-status { font-size: var(--step--1); color: var(--dim); }
+.pad-status[data-on="true"] { color: var(--leaf); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); }
+.seg button { font-family: var(--font-pixel); font-size: 0.75rem; background: var(--vellum); color: var(--dim); border: 0; padding: 6px 10px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--gold); color: var(--night); }
+.screen-notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px 24px; }
+.screen-notes div { display: grid; gap: 2px; min-width: 0; align-content: start; }
+
+/* Slot panels */
+.section { display: grid; gap: 20px; }
+.section-head { display: grid; gap: 6px; max-width: 70ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 228px), 1fr)); gap: 16px; }
+.card { background: var(--vellum); border: 1px solid var(--line); padding: 16px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.card-head { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.hero-sprite { width: 96px; height: 96px; image-rendering: pixelated; background: var(--night); border: 1px solid var(--line); }
+.hero-sprite.flip, .sizes img.flip { transform: scaleX(-1); }
+.card-title { display: grid; gap: 4px; min-width: 0; justify-items: start; }
+.chip { font-family: var(--font-pixel); font-size: 0.6875rem; color: var(--night); background: var(--gold); padding: 2px 6px; font-variant-numeric: tabular-nums; }
+.chip.ghost { background: transparent; color: var(--gloam); border: 1px solid var(--gloam); }
+.card p { font-size: 1rem; }
+.card .later { font-size: 0.9375rem; color: var(--dim); }
+.card .later b { color: var(--ink); font-weight: 500; }
+.cands { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cand { padding: 0; aspect-ratio: 1; background: var(--night); border: 1px solid var(--line); cursor: pointer; display: grid; place-items: center; }
+.cand img { width: 75%; height: 75%; image-rendering: pixelated; }
+.cand:hover { border-color: var(--dim); }
+.cand[aria-pressed="true"] { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.meta { font-size: 0.8125rem; color: var(--dim); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.mirror { font-family: var(--font-pixel); font-size: 0.6875rem; background: transparent; color: var(--dim); border: 1px solid var(--line); padding: 3px 8px; cursor: pointer; }
+.mirror[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+.sizes { display: flex; gap: 12px; align-items: end; }
+.sizes figure { margin: 0; display: grid; gap: 4px; justify-items: center; }
+.sizes img { image-rendering: pixelated; background: var(--night); }
+.sizes figcaption { font-size: 0.75rem; color: var(--dim); }
+
+/* Rules */
+.rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 16px 32px; }
+.rules div { display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 12px; align-content: start; }
+.rules strong { font-family: var(--font-pixel); font-weight: 400; color: var(--gold); font-variant-numeric: tabular-nums; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--vellum); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 0.9375rem; }
+th, td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font-family: var(--font-pixel); font-weight: 400; font-size: 0.6875rem; letter-spacing: 0.08em; color: var(--dim); }
+td.sp { color: var(--gold); text-align: left; }
+td.what { text-align: left; white-space: normal; min-width: 18ch; }
+.lineage { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.lineage div { background: var(--vellum); border: 1px solid var(--line); padding: 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.lineage ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+footer { border-top: 1px solid var(--line); padding-top: 16px; font-size: var(--step--1); color: var(--dim); display: grid; gap: 6px; }
+footer a { color: var(--gold); }
+@media (prefers-reduced-motion: reduce) { button.primary:active { transform: none; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="label">Concept sheet · v0.1</p>
+      <h1>Heroic Crusader</h1>
+      <p class="pitch">Take the squire's vow. Walk a storybook kingdom gone dim, win turn-based fights against creatures soured by the Gloam, and relight the four beacons before the last light goes out.</p>
+    </div>
+    <div class="actions">
+      <button class="primary" id="copy-picks" type="button">Copy my picks</button>
+      <span id="copy-status" role="status"></span>
+      <textarea id="picks-text" hidden readonly aria-label="Your picks as JSON"></textarea>
+    </div>
+  </header>
+
+  <section class="screen-block" aria-labelledby="screen-h">
+    <div class="section-head">
+      <h2 id="screen-h">The journey screen</h2>
+      <p class="muted">Live mockup at the game's real resolution (416&times;228, 16&nbsp;px tiles). A demo squire walks the kingdom, gets ambushed, fights side-on, visits towns and takes on the Meadow warden. Click the screen and take over; the demo resumes after a few idle seconds. Sprites you pick below swap in here.</p>
+    </div>
+    <div class="bezel"><canvas id="screen" width="832" height="456" tabindex="0" aria-label="Game screen mockup. Click it, then walk with the arrow keys or W A S D. Z confirms, X goes back, Escape opens the menu."></canvas></div>
+    <div class="controls">
+      <div class="keys" aria-label="Keyboard">
+        <span class="label">Keyboard</span>
+        <span class="key"><kbd>&larr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd>&nbsp;walk, choose</span>
+        <span class="key"><kbd>Z</kbd>&nbsp;/&nbsp;<kbd>Space</kbd>&nbsp;confirm, talk, search</span>
+        <span class="key"><kbd>X</kbd>&nbsp;back</span>
+        <span class="key"><kbd>Esc</kbd>&nbsp;menu</span>
+        <span class="key"><kbd>M</kbd>&nbsp;sound</span>
+      </div>
+      <div class="keys" aria-label="Controller">
+        <span class="label">Controller</span>
+        <span class="key"><kbd>D-pad</kbd>&nbsp;or&nbsp;<kbd>L stick</kbd>&nbsp;walk</span>
+        <span class="key"><kbd>A</kbd>&nbsp;confirm</span>
+        <span class="key"><kbd>B</kbd>&nbsp;back</span>
+        <span class="key"><kbd>Start</kbd>&nbsp;menu</span>
+        <span class="key"><kbd>Back</kbd>&nbsp;sound</span>
+        <span class="pad-status" id="pad-status" role="status">No controller yet. Press any button on it.</span>
+      </div>
+      <div class="keys" aria-label="Touch">
+        <span class="label">Touch</span>
+        <span class="key">Left thumb: d-pad</span>
+        <span class="key">Right thumb: A and B</span>
+        <span class="key">Tap menu rows and foes directly</span>
+        <span class="seg" role="group" aria-label="Touch controls"><button type="button" id="touch-off" data-touch="off" aria-pressed="true">Hide</button><button type="button" id="touch-on" data-touch="on" aria-pressed="false">Show</button></span>
+      </div>
+      <div class="keys" aria-label="Preview">
+        <span class="label">Preview</span>
+        <span class="seg" role="group" aria-label="Where to look"><button type="button" id="view-over" data-view="over" aria-pressed="true">Overworld</button><button type="button" id="view-dungeon" data-view="dungeon" aria-pressed="false">Dungeon</button></span>
+        <span class="seg" role="group" aria-label="Beacons lit"><button type="button" id="lit-0" data-lit="0" aria-pressed="true">0 lit</button><button type="button" id="lit-2" data-lit="2" aria-pressed="false">2 lit</button><button type="button" id="lit-4" data-lit="4" aria-pressed="false">All 4</button></span>
+        <span class="muted" id="preview-note">Under the Gloam the land is grey and fog drifts over it.</span>
+      </div>
+    </div>
+    <div class="screen-notes">
+      <div><span class="label">Top bar</span><span>Name, level, HP, MP and gold on the left. A MENU chip, four beacon pips and a sound toggle on the right, all tappable.</span></div>
+      <div><span class="label">The map</span><span>Code-drawn tiles: meadow, forest, hills, marsh, snow, ruins, roads and rivers. Each region stays grey and fogged until its beacon burns again.</span></div>
+      <div><span class="label">Battle</span><span>Side view over a backdrop of the ground you were standing on. Foes flash white before they act. A ring closes as a blow lands: press A on it for a Valor strike, or to guard.</span></div>
+      <div><span class="label">Dungeons</span><span>Dark. A torch shows about two tiles round you; the Glow spell shows more. Chests hold keys, keys open doors, stairs lead down to the warden.</span></div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="hero-h">
+    <div class="section-head">
+      <h2 id="hero-h">The squire &amp; the townsfolk</h2>
+      <p class="muted">One hero, named by you. The squire flips to face the way it walks and always faces right in battle, so pick art that mirrors well. Townsfolk stand still in towns and talk when you press A beside them.</p>
+    </div>
+    <div class="grid" id="hero-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="foe-h">
+    <div class="section-head">
+      <h2 id="foe-h">Soured creatures</h2>
+      <p class="muted">Nine families, seventeen creatures: later regions bring recoloured, tougher kin. They aren't killed. A beaten creature shakes off the Gloam and runs home. Drawn at 2&times; in battle.</p>
+    </div>
+    <div class="grid" id="foe-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="warden-h">
+    <div class="section-head">
+      <h2 id="warden-h">Beacon wardens &amp; the Gloam</h2>
+      <p class="muted">Each beacon sits at the bottom of a dungeon behind a warden, drawn at 3&times;. You can't run from a warden. The Gloam waits in its Hollow, sealed behind a wall that only all four beacons can burn away.</p>
+    </div>
+    <div class="grid" id="warden-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="kit-h">
+    <div class="section-head">
+      <h2 id="kit-h">Things you find</h2>
+      <p class="muted">Map objects and HUD icons. Icons show at half size (8&nbsp;px) in menus and the top bar, still pixel-exact because the game renders at 4&times;.</p>
+    </div>
+    <div class="grid" id="kit-grid"></div>
+  </section>
+
+  <section class="section" aria-labelledby="rules-h">
+    <div class="section-head"><h2 id="rules-h">How the crusade plays</h2></div>
+    <div class="rules">
+      <div><strong>Walk, fight, grow</strong><span>Fights start at random as you walk. Each kind of ground has its own odds: roads are safest, marsh and ruins the worst. Creatures get tougher the farther you go from Brightkeep.</span></div>
+      <div><strong>Fight · Spell · Item · Flee</strong><span>You act, then each foe in turn. Up to three foes at once. Fleeing works about two times in three and costs you the turn when it fails. You can never flee a warden.</span></div>
+      <div><strong>Valor timing</strong><span>A ring closes on the target as each blow lands. Press A as it closes: your strike does 1.5&times;, or a foe's blow does half. Miss the beat and nothing is lost. It can be switched off.</span></div>
+      <div><strong>LV 1 &rarr; 15</strong><span>Beating creatures earns Valor (experience) and gold. Valor raises your level: more HP, MP, attack and defence, and a new spell every level or two.</span></div>
+      <div><strong>Shrines</strong><span>Every town has a shrine. The keeper saves your journey, cures poison, and is where you wake if you fall, with half your gold gone. Inns refill HP and MP for a few gold.</span></div>
+      <div><strong>Four beacons</strong><span>Meadow, Marsh, Snow and Ruins. Beat a warden and its beacon burns: the colour comes back to that region, the fog lifts and fights there come a third less often.</span></div>
+      <div><strong>Dark below</strong><span>Dungeons are dark. Iron keys from chests or the hermit open locked doors and are used up. Herbs, keys and the Homeward spell are how you get back out.</span></div>
+      <div><strong>About an hour</strong><span>One overworld, three towns and a hermit's hut, four beacon dungeons and the Hollow. One save slot in your browser.</span></div>
+    </div>
+    <div class="table-wrap">
+      <table aria-label="Spells by level">
+        <thead><tr><th>Spell</th><th>LV</th><th>MP</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td class="sp">Mend</td><td>3</td><td>3</td><td class="what">Heal about 20 HP</td></tr>
+          <tr><td class="sp">Spark</td><td>4</td><td>2</td><td class="what">About 10 fire damage to one foe, ignores armour</td></tr>
+          <tr><td class="sp">Glow</td><td>5</td><td>2</td><td class="what">Light a wide circle in dungeons; it shrinks as you walk</td></tr>
+          <tr><td class="sp">Lull</td><td>7</td><td>2</td><td class="what">Put a group of foes to sleep for a few turns</td></tr>
+          <tr><td class="sp">Ward</td><td>9</td><td>2</td><td class="what">Weaker creatures leave you alone for 200 steps</td></tr>
+          <tr><td class="sp">Homeward</td><td>10</td><td>6</td><td class="what">Return to the last shrine you saved at</td></tr>
+          <tr><td class="sp">Flare</td><td>12</td><td>5</td><td class="what">About 25 fire damage to every foe</td></tr>
+          <tr><td class="sp">Restore</td><td>14</td><td>8</td><td class="what">Heal about 80 HP</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="lineage-h">
+    <div class="section-head">
+      <h2 id="lineage-h">From the 1986 original</h2>
+      <p class="muted">Heroic Crusader borrows the shape of Chunsoft and Enix's <em>Dragon Quest</em>: one hero, a tile map, menu battles and a long walk to a final foe. The world, story, names, characters, monsters, art and music are new.</p>
+    </div>
+    <div class="lineage">
+      <div><span class="label">Kept</span><ul>
+        <li>One hero against the world, levels and gold</li>
+        <li>Random fights by terrain, harder farther from home</li>
+        <li>Fight, Spell, Item, Flee menus</li>
+        <li>Spells learned by level, herbs, keys and locked doors</li>
+        <li>Dark dungeons and a light spell</li>
+        <li>Lose half your gold when you fall</li>
+        <li>A final foe with a second form</li>
+      </ul></div>
+      <div><span class="label">Changed</span><ul>
+        <li>Storybook kingdom; four beacons to relight, not relics to gather</li>
+        <li>Side-view battles with the hero on screen</li>
+        <li>Up to three foes at a time</li>
+        <li>Creatures are freed, not slain</li>
+        <li>Save at any town's shrine</li>
+        <li>No command menu on the map: A talks, searches, opens</li>
+      </ul></div>
+      <div><span class="label">Added</span><ul>
+        <li>Valor timing for strikes and guards</li>
+        <li>Foes flash before they act</li>
+        <li>Regions regain colour as beacons burn</li>
+        <li>A short quest line in the menu</li>
+        <li>Controller and touch from day one</li>
+        <li>Sparks, shake and procedural sound</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Sprites: <a href="https://huggingface.co/spaces/cfahlgren1/pixel-search" target="_blank" rel="noopener">Pixel Search</a> catalog of <a href="https://huggingface.co/datasets/Angais/pixel-art-atlas-1.4m" target="_blank" rel="noopener">Angais/pixel-art-atlas-1.4m</a>, CC0, AI-generated. Numbers under each sprite are its catalog id. Tinted kin are recoloured in code.</span>
+    <span>Fonts: Silkscreen, Jacquard 24 and Alegreya Sans (SIL OFL). Inspired by Dragon Quest (Chunsoft / Enix, 1986); not affiliated with or endorsed by its rights holders.</span>
+  </footer>
+</div>
+
+<script>
+const SPRITES = /*SPRITES*/{};
+
+const HERO = { slot: "player", name: "The squire", text: "You, named at the start (Wren by default). Walks the map a tile at a time and stands on the left in battle at 2×." };
+const TOWNSFOLK = [
+  { slot: "villager", name: "Townsfolk", text: "Gossip and hints: where the next beacon is, what a warden fears, which chest holds a key." },
+  { slot: "merchant", name: "Smith & grocer", text: "Sells weapons, armour, shields, herbs and torches. Buys anything back at half price." },
+  { slot: "healer", name: "Shrine keeper", text: "Saves your journey, cures poison, and tends you when you fall (half your gold is the fee)." },
+  { slot: "queen", name: "Queen Maren", text: "Gives the vow at Brightkeep and tells you how much Valor the next level needs." },
+];
+const FOES = [
+  { slot: "hare", name: "Thornhare", chip: "Meadow", text: "Quick. Often acts before you.", later: ["Rimehare", "snow, frost-blue, bites twice"] },
+  { slot: "crow", name: "Rook", chip: "Meadow · hills", text: "Pecks, and sometimes grabs a few gold and flies off.", later: ["Grim Rook", "ruins, casts Spark"] },
+  { slot: "puffcap", name: "Puffcap", chip: "Meadow", text: "Slow and soft. Its spores can put you to sleep for a turn.", later: ["Rotcap", "marsh, green, spores poison"] },
+  { slot: "toad", name: "Bogtoad", chip: "Marsh", text: "Thick hide and lots of HP. Its tongue lash can poison." },
+  { slot: "wisp", name: "Marshwisp", chip: "Marsh", text: "Casts Spark and dodges often.", later: ["Frostwisp", "snow, casts Hush to silence your spells"] },
+  { slot: "bat", name: "Duskbat", chip: "Dungeons", text: "Comes in threes and drinks a little HP with each bite.", later: ["Gloombat", "ruins, drinks more"] },
+  { slot: "wolf", name: "Frostfang", chip: "Snow", text: "Hunts in pairs and howls for a third.", later: ["Shadefang", "the Hollow"] },
+  { slot: "rustguard", name: "Rustguard", chip: "Ruins", text: "Empty armour. Blades barely dent it; Spark and Lull work well.", later: ["Ironguard", "the Hollow"] },
+  { slot: "golem", name: "Cairn", chip: "Ruins", text: "Huge and slow. Braces every other turn and takes half damage.", later: ["Obsidian Cairn", "the Hollow"] },
+];
+const WARDENS = [
+  { slot: "warden_meadow", name: "Bristleback", chip: "Thornwood Barrow · LV 4", text: "Boar warden of the Meadow beacon. Glows as it digs in, then charges for double damage next turn." },
+  { slot: "warden_marsh", name: "Sir Croakley", chip: "Drowned Belfry · LV 7", text: "Frog knight of the Marsh beacon. Heals himself with marsh water; Lull him first." },
+  { slot: "warden_snow", name: "Old Rime", chip: "Rime Spire · LV 10", text: "Ice giant of the Snow beacon. Draws a visible breath, then frosts you the turn after." },
+  { slot: "warden_ruin", name: "The Hollow Regent", chip: "Sunder Keep · LV 13", text: "Crowned lich of the Ruins beacon. Casts Hush and Flare." },
+  { slot: "gloam", name: "The Gloam", chip: "Gloam's Hollow · LV 15", ghost: true, text: "What put the beacons out. First a shadow that copies your last spell; at half HP it unmasks at 4× and fights with all four wardens' tricks." },
+];
+const KIT = [
+  { slot: "chest", name: "Chest", text: "In dungeons and a few houses. Press A beside it. Herbs, gold, keys and better gear." },
+  { slot: "beacon", name: "Beacon", text: "Cold and grey until its warden falls. Lit beacons burn on the map and in the four HUD pips." },
+  { slot: "herb", name: "Herb", chip: "10 G", text: "Restores about 25 HP. Carry up to six." },
+  { slot: "coin", name: "Gold", text: "Dropped by every creature. Spent at smiths, grocers and inns." },
+  { slot: "key", name: "Iron key", chip: "40 G", text: "Opens one locked door and is used up. From chests, or from the hermit." },
+];
+
+// Picks: first candidate by default (the build puts the chosen sprite first). Remembered per viewer when storage allows.
+const picks = {};
+for (const slot in SPRITES) picks[slot] = SPRITES[slot][0]?.id;
+const mirror = { player: true };
+try {
+  const saved = JSON.parse(localStorage.getItem("heroic-crusader-picks") || "{}");
+  for (const slot in saved) if (SPRITES[slot]?.some((s) => s.id === saved[slot])) picks[slot] = saved[slot];
+  const savedMirror = JSON.parse(localStorage.getItem("heroic-crusader-mirror") || "null");
+  if (savedMirror) { for (const k in mirror) delete mirror[k]; for (const slot of savedMirror) if (SPRITES[slot]) mirror[slot] = true; }
+} catch (e) {}
+function save() {
+  try {
+    localStorage.setItem("heroic-crusader-picks", JSON.stringify(picks));
+    localStorage.setItem("heroic-crusader-mirror", JSON.stringify(Object.keys(mirror)));
+  } catch (e) {}
+}
+
+const images = {};
+const whites = {};
+for (const slot in SPRITES) for (const s of SPRITES[slot]) {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement("canvas"); c.width = img.width; c.height = img.height;
+    const g = c.getContext("2d"); g.drawImage(img, 0, 0); g.globalCompositeOperation = "source-in"; g.fillStyle = "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+    whites[s.id] = c;
+  };
+  img.src = s.src; images[s.id] = img;
+}
+const entry = (slot) => SPRITES[slot]?.find((s) => s.id === picks[slot]);
+
+function candidates(slot) {
+  const box = document.createElement("div");
+  box.className = "cands";
+  for (const s of SPRITES[slot] || []) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "cand"; b.dataset.slot = slot; b.dataset.id = s.id;
+    b.title = `${s.subject} · #${s.id}`;
+    b.setAttribute("aria-label", `${s.subject}, catalog ${s.id}`);
+    const img = document.createElement("img"); img.src = s.src; img.alt = "";
+    b.append(img); box.append(b);
+  }
+  return box;
+}
+
+function card({ slot, name, chip, ghost, text, later }, withMirror = false) {
+  const c = document.createElement("article");
+  c.className = "card"; c.dataset.slot = slot;
+  const head = document.createElement("div"); head.className = "card-head";
+  const hero = document.createElement("img"); hero.className = "hero-sprite"; hero.alt = name; hero.dataset.hero = slot;
+  const title = document.createElement("div"); title.className = "card-title";
+  const h = document.createElement("h3"); h.textContent = name; title.append(h);
+  if (chip) { const ch = document.createElement("span"); ch.className = ghost ? "chip ghost" : "chip"; ch.textContent = chip; title.append(ch); }
+  const meta = document.createElement("span"); meta.className = "meta"; meta.dataset.meta = slot; title.append(meta);
+  if (withMirror) {
+    const m = document.createElement("button"); m.type = "button"; m.className = "mirror"; m.dataset.mirror = slot; m.textContent = "Mirror";
+    m.title = "Flip the art so it faces right at rest"; title.append(m);
+  }
+  head.append(hero, title); c.append(head);
+  if (text) { const p = document.createElement("p"); p.textContent = text; c.append(p); }
+  if (later) {
+    const p = document.createElement("p"); p.className = "later";
+    const b = document.createElement("b"); b.textContent = later[0];
+    p.append("Later kin: ", b, ` (${later[1]}).`); c.append(p);
+  }
+  c.append(candidates(slot));
+  return c;
+}
+
+function heroCard() {
+  const c = card(HERO, true);
+  const sizes = document.createElement("div"); sizes.className = "sizes";
+  for (const n of [1, 2, 4]) {
+    const f = document.createElement("figure");
+    const img = document.createElement("img"); img.width = 16 * n; img.height = 16 * n; img.alt = ""; img.dataset.hero = "player";
+    const cap = document.createElement("figcaption"); cap.textContent = `${n}× · ${16 * n}px`;
+    f.append(img, cap); sizes.append(f);
+  }
+  c.insertBefore(sizes, c.querySelector(".cands"));
+  return c;
+}
+
+document.getElementById("hero-grid").append(heroCard());
+for (const t of TOWNSFOLK) document.getElementById("hero-grid").append(card(t));
+for (const f of FOES) document.getElementById("foe-grid").append(card(f));
+for (const w of WARDENS) document.getElementById("warden-grid").append(card(w));
+for (const k of KIT) document.getElementById("kit-grid").append(card(k));
+
+function refreshCards() {
+  document.querySelectorAll("[data-hero]").forEach((img) => {
+    const e = entry(img.dataset.hero); if (e) img.src = e.src;
+    img.classList.toggle("flip", Boolean(mirror[img.dataset.hero]));
+  });
+  document.querySelectorAll("[data-meta]").forEach((m) => { const s = entry(m.dataset.meta); if (s) m.textContent = `${s.subject} · #${s.id}`; });
+  document.querySelectorAll(".cand").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.id) === picks[b.dataset.slot])));
+  document.querySelectorAll("[data-mirror]").forEach((b) => b.setAttribute("aria-pressed", String(Boolean(mirror[b.dataset.mirror]))));
+}
+refreshCards();
+
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest(".cand");
+  const m = ev.target.closest("[data-mirror]");
+  if (b) picks[b.dataset.slot] = Number(b.dataset.id);
+  else if (m) { const s = m.dataset.mirror; if (mirror[s]) delete mirror[s]; else mirror[s] = true; }
+  else return;
+  save(); refreshCards();
+});
+
+document.getElementById("copy-picks").addEventListener("click", () => {
+  const json = JSON.stringify({ ...picks, mirror: Object.keys(mirror) }, null, 2);
+  const status = document.getElementById("copy-status");
+  const area = document.getElementById("picks-text");
+  const fallback = () => { area.value = json; area.hidden = false; area.focus(); area.select(); status.textContent = "Copy the selected text below."; };
+  try {
+    navigator.clipboard.writeText(json).then(() => { area.hidden = true; status.textContent = "Copied. Paste it back to Claude."; }, fallback);
+  } catch (e) { fallback(); }
+});
+
+// ---- Screen mockup ----
+// Game coordinates are 416x228 with 16 px tiles; the canvas is 2x so half-size icons stay pixel-exact, like the game's 4x canvas.
+const cv = document.getElementById("screen");
+const ctx = cv.getContext("2d");
+const S = 2, W = 416, H = 228, T = 16;
+const C = { night: "#10142a", panel: "#141a33", ink: "#f1e9d4", dim: "#a7a5c2", gold: "#f3b84a", gloam: "#9d7be0", leaf: "#8fd07a", hurt: "#ff6b5e", trim: "#e9d9a6", trim2: "#6b5a2e", line: "#2d3560" };
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const rand = Math.random;
+const ri = (a, b) => a + Math.floor(rand() * (b - a + 1));
+function mulberry32(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// The overworld. M mountain, ~ water, x Gloam wall (gone when all four burn), . grass, , flowers, T forest, h hills,
+// m marsh, * snow, r ruins, = road, B bridge, : sand. C Brightkeep, V Fenbridge, F Frostholm, H hermit, 1-4 beacons, G the Hollow.
+const OVER_ROWS = [
+  "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+  "MMMMMM******MMMM*******MMMM**3**MMMMMMMMMMMMMMMM",
+  "MMMM****T*****MM**T*****MM***=***MMMMxxxxxxMMMMM",
+  "MMM***TT********************~=****MMMxxGxxxMMMMM",
+  "MMM**TTT***F=========*****~~=****MMMMxxxxxxMMMMM",
+  "MM*****T*****=****T****~~**==****hhhhhh==hhMMMMM",
+  "MM**********=*********~~**=**hhhhhhhhh=hhhhhMMMM",
+  "MMmm*******=*****MM***~**=*hhhhhhhhhh=hhhhhrMMMM",
+  "MMm2mm*****=****MMMM**~*=*hhhhhhhh===hhhhrrrMMMM",
+  "MMmm=mmm***=***MMMMM**B=hhhhhh====hhhhhrrrrrMMMM",
+  "MMmmm=mmmm,,=,,,MMM..~~=...........hhhrrrrrrMMMM",
+  "MMmmmm=mmm,,=,,....~~~.=..TT.......=hrrrrrrrMMMM",
+  "MMmmmmm=V==B=......~~~.=.TTTT.....=.hrrrrrrrMMMM",
+  "MMmmmmmmmm,,=,.....~~~~=..TT.....=...rrrrrrrMMMM",
+  "MMMmmmmmm,,,=,......~~~=........=....=rrrrrrMMMM",
+  "MMMmmmmm,,..=.......~~~=.......=..H==.rrrrrrMMMM",
+  "MMMMmmm,,...=.......~~B=......=......=rrrrrrMMMM",
+  "MMMMMmm,....=......~~..=.....=.......=.rr4rrMMMM",
+  "MMMMMm,.TT..=......~~..=....=........====rrrMMMM",
+  "MMMMM,.TTTT.=.....~~...=...=...hh.........rMMMMM",
+  "MMMMM.TT1TT.======B=====C==.....hhh........MMMMM",
+  "MMMMM.TTTTT.......~~....=.........hh.......MMMMM",
+  "MMMMMM.TTT........~~....=,,,..............MMMMMM",
+  "MMMMMMM...........~~....,,,,,............MMMMMMM",
+  "MMMMMMMM:::::::::~~~~:::::::::::::::::::MMMMMMMM",
+  "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",
+];
+// One dungeon floor: # wall, . floor, c chest, D locked door, < stairs up, > stairs down, b cold brazier.
+const DUNGEON_ROWS = [
+  "##############################",
+  "#<.....#.........#...........#",
+  "#......#....c....#...........#",
+  "#......#.........D.....>.....#",
+  "#..............###...........#",
+  "###.####.......#.#############",
+  "#.......#####..#.............#",
+  "#..c.......#...#..##########.#",
+  "#..........#...#..#........#.#",
+  "######.#####...#..#..####..#.#",
+  "#..........#......#..#..#....#",
+  "#..####....##########..#.....#",
+  "#..#..#..............#..######",
+  "#.....#..c...........D.......#",
+  "#..........#.........#....b..#",
+  "##############################",
+];
+
+const SITES = {
+  C: { name: "Brightkeep", kind: "town", text: "BRIGHTKEEP. The inn restores you and the shrine keeper saves your journey." },
+  V: { name: "Fenbridge", kind: "town", text: "FENBRIDGE. Stilt houses over the marsh. Rest, save, buy remedies." },
+  F: { name: "Frostholm", kind: "town", text: "FROSTHOLM. Snowed-in and wary. Warm furs at the smithy." },
+  H: { name: "Hermit's hut", kind: "town", text: "THE HERMIT. Iron keys, 40 G each, and a cup of nettle tea." },
+  1: { name: "Thornwood Barrow", kind: "beacon", n: 0, warden: "bristleback", region: "meadow" },
+  2: { name: "Drowned Belfry", kind: "beacon", n: 1, warden: "croakley", region: "marsh" },
+  3: { name: "Rime Spire", kind: "beacon", n: 2, warden: "rime", region: "snow" },
+  4: { name: "Sunder Keep", kind: "beacon", n: 3, warden: "regent", region: "ruins" },
+  G: { name: "Gloam's Hollow", kind: "hollow" },
+};
+const REGION_NAMES = ["Meadow", "Marsh", "Snow", "Ruins"];
+
+function makeWorld(rows, kind) {
+  const w = Math.max(...rows.map((r) => r.length)), h = rows.length, fill = kind === "over" ? "M" : "#";
+  const grid = rows.map((r) => (r + fill.repeat(w)).slice(0, w).split(""));
+  const sites = {};
+  grid.forEach((row, y) => row.forEach((t, x) => { if (SITES[t] || "<>".includes(t)) sites[t] = { x, y }; }));
+  if (kind === "over") {
+    // Diagonal road steps get a corner tile so every road is 4-connected.
+    const road = (x, y) => "=B".includes(grid[y]?.[x] ?? "M");
+    const open = (x, y) => ".,:hT*mr".includes(grid[y]?.[x] ?? "M");
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) if (grid[y][x] === "=") for (const [dx, dy] of [[1, 1], [-1, 1]]) {
+      if (!road(x + dx, y + dy) || road(x + dx, y) || road(x, y + dy)) continue;
+      if (open(x + dx, y)) grid[y][x + dx] = "="; else if (open(x, y + dy)) grid[y + dy][x] = "=";
+    }
+  }
+  return { kind, w, h, grid, sites, rows };
+}
+const OVER = makeWorld(OVER_ROWS, "over");
+const DUNGEON = makeWorld(DUNGEON_ROWS, "dungeon");
+// Each overworld tile belongs to the region of its nearest beacon; the Hollow's corner belongs to none.
+const beaconAt = [1, 2, 3, 4].map((n) => OVER.sites[n]);
+const TERRAIN_REGION = { m: 1, V: 1, 2: 1, "*": 2, F: 2, 3: 2, r: 3, h: 3, H: 3, 4: 3, ",": 0, T: 0, C: 0, 1: 0 };
+OVER.region = OVER.grid.map((row, y) => row.map((t, x) => {
+  if (x >= 36 && y <= 5) return -1;
+  if (t in TERRAIN_REGION) return TERRAIN_REGION[t];
+  let best = 0, bd = 1e9;
+  beaconAt.forEach((b, i) => { const d = Math.abs(b.x - x) + Math.abs(b.y - y) * 1.2; if (d < bd) { bd = d; best = i; } });
+  return best;
+}));
+
+// ---- Sprite tinting (later kin are recoloured base creatures; the game bakes the same textures) ----
+const tintCache = {};
+function rgbToHsl(r, g, b) {
+  r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, s = 0; const l = (mx + mn) / 2;
+  if (mx !== mn) { const d = mx - mn; s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h /= 6; }
+  return [h, s, l];
+}
+function hslToRgb(h, s, l) {
+  if (!s) return [l * 255, l * 255, l * 255];
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const f = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+}
+function tinted(id, tint) {
+  const key = `${id}:${tint.hue}:${tint.sat ?? 1}:${tint.light ?? 1}`;
+  if (tintCache[key]) return tintCache[key];
+  const img = images[id]; if (!img || !img.complete || !img.naturalWidth) return null;
+  const c = document.createElement("canvas"); c.width = 16; c.height = 16;
+  const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, 16, 16);
+  for (let i = 0; i < d.data.length; i += 4) {
+    if (!d.data[i + 3]) continue;
+    let [h, s, l] = rgbToHsl(d.data[i], d.data[i + 1], d.data[i + 2]);
+    h = (h + tint.hue / 360 + 1) % 1; s = clamp(s * (tint.sat ?? 1), 0, 1); l = clamp(l * (tint.light ?? 1), 0, 1);
+    const [r, gg, b] = hslToRgb(h, s, l); d.data[i] = r; d.data[i + 1] = gg; d.data[i + 2] = b;
+  }
+  g.putImageData(d, 0, 0);
+  return (tintCache[key] = c);
+}
+
+// ---- Creatures (numbers are a first pass; the game keeps them in config.ts) ----
+const FOE = {
+  thornhare: { slot: "hare", name: "Thornhare", hp: 6, atk: 9, def: 4, agi: 12, xp: 1, gold: 2 },
+  rook: { slot: "crow", name: "Rook", hp: 8, atk: 11, def: 5, agi: 12, xp: 2, gold: 3, trait: "steal" },
+  puffcap: { slot: "puffcap", name: "Puffcap", hp: 12, atk: 10, def: 8, agi: 3, xp: 3, gold: 4, trait: "spores" },
+  duskbat: { slot: "bat", name: "Duskbat", hp: 12, atk: 14, def: 8, agi: 14, xp: 4, gold: 5, trait: "drain" },
+  bogtoad: { slot: "toad", name: "Bogtoad", hp: 24, atk: 22, def: 14, agi: 4, xp: 9, gold: 10 },
+  marshwisp: { slot: "wisp", name: "Marshwisp", hp: 16, atk: 18, def: 12, agi: 18, xp: 10, gold: 12, trait: "spark" },
+  rotcap: { slot: "puffcap", tint: { hue: 95, sat: 0.9, light: 0.9 }, name: "Rotcap", hp: 20, atk: 20, def: 14, agi: 5, xp: 11, gold: 12, trait: "spores" },
+  frostfang: { slot: "wolf", name: "Frostfang", hp: 30, atk: 32, def: 20, agi: 16, xp: 18, gold: 20 },
+  rimehare: { slot: "hare", tint: { hue: 190, sat: 0.6, light: 1.1 }, name: "Rimehare", hp: 22, atk: 30, def: 18, agi: 22, xp: 16, gold: 15 },
+  frostwisp: { slot: "wisp", tint: { hue: 170, sat: 0.8, light: 1.1 }, name: "Frostwisp", hp: 26, atk: 26, def: 22, agi: 20, xp: 20, gold: 22, trait: "spark" },
+  rustguard: { slot: "rustguard", name: "Rustguard", hp: 40, atk: 42, def: 40, agi: 8, xp: 30, gold: 35 },
+  cairn: { slot: "golem", name: "Cairn", hp: 60, atk: 46, def: 34, agi: 4, xp: 34, gold: 30 },
+  gloombat: { slot: "bat", tint: { hue: 250, sat: 0.9, light: 0.85 }, name: "Gloombat", hp: 30, atk: 40, def: 26, agi: 24, xp: 24, gold: 25, trait: "drain" },
+  bristleback: { slot: "warden_meadow", name: "Bristleback", hp: 52, atk: 19, def: 10, agi: 8, xp: 40, gold: 60, scale: 3, warden: true, trait: "charge" },
+  croakley: { slot: "warden_marsh", name: "Sir Croakley", hp: 120, atk: 32, def: 22, agi: 10, xp: 90, gold: 120, scale: 3, warden: true, trait: "charge" },
+  rime: { slot: "warden_snow", name: "Old Rime", hp: 180, atk: 46, def: 30, agi: 6, xp: 160, gold: 200, scale: 3, warden: true, trait: "charge" },
+  regent: { slot: "warden_ruin", name: "The Hollow Regent", hp: 240, atk: 58, def: 36, agi: 14, xp: 260, gold: 300, scale: 3, warden: true, trait: "spark" },
+};
+const POOLS = {
+  meadow: [["thornhare"], ["rook"], ["puffcap"], ["thornhare", "thornhare"], ["rook", "thornhare"], ["puffcap", "rook"]],
+  hills: [["rook", "rook"], ["puffcap"], ["duskbat", "duskbat"]],
+  marsh: [["bogtoad"], ["marshwisp"], ["rotcap"], ["bogtoad", "marshwisp"], ["puffcap", "rotcap"]],
+  snow: [["frostfang"], ["rimehare"], ["frostwisp"], ["frostfang", "rimehare"]],
+  ruins: [["rustguard"], ["cairn"], ["gloombat", "gloombat"], ["rustguard", "gloombat"]],
+  dungeon: [["duskbat", "duskbat", "duskbat"], ["duskbat", "duskbat"], ["puffcap", "duskbat"]],
+};
+// Encounter odds per step, by ground.
+const ODDS = { "=": 1 / 48, B: 1 / 48, ":": 1 / 30, ".": 1 / 22, ",": 1 / 22, T: 1 / 14, h: 1 / 12, m: 1 / 10, "*": 1 / 14, r: 1 / 10, dungeon: 1 / 16 };
+
+// The hero: levels 1-15. The demo starts at LV 5.
+const LEVELS = [
+  // lv, hp, mp, str, res, valor needed
+  [1, 15, 0, 5, 3, 0], [2, 22, 4, 7, 4, 7], [3, 28, 8, 9, 6, 23], [4, 34, 12, 12, 7, 47], [5, 40, 16, 15, 9, 110],
+  [6, 47, 20, 18, 11, 220], [7, 54, 25, 21, 13, 400], [8, 61, 30, 24, 15, 650], [9, 68, 35, 28, 17, 1000], [10, 76, 40, 32, 19, 1500],
+  [11, 84, 45, 36, 21, 2200], [12, 92, 50, 40, 23, 3100], [13, 100, 55, 44, 25, 4300], [14, 110, 62, 48, 27, 5800], [15, 120, 70, 52, 30, 7800],
+];
+const SPELLS = [
+  { id: "mend", name: "MEND", lv: 3, mp: 3, battle: true, self: true },
+  { id: "spark", name: "SPARK", lv: 4, mp: 2, battle: true },
+  { id: "glow", name: "GLOW", lv: 5, mp: 2, battle: false },
+  { id: "lull", name: "LULL", lv: 7, mp: 2, battle: true, group: true },
+  { id: "ward", name: "WARD", lv: 9, mp: 2, battle: false },
+  { id: "homeward", name: "HOMEWARD", lv: 10, mp: 6, battle: false },
+  { id: "flare", name: "FLARE", lv: 12, mp: 5, battle: true, group: true },
+  { id: "restore", name: "RESTORE", lv: 14, mp: 8, battle: true, self: true },
+];
+const GEAR = { weapon: 10, armour: 6, shield: 3 };   // bronze sword, padded coat, buckler
+let hero;
+function newHero() {
+  const L = LEVELS[4];
+  hero = { name: "WREN", lv: 5, hp: L[1], mp: L[2], xp: 120, gold: 86, herbs: 3, keys: 0, x: 0, y: 0, face: 1, moving: null, step: 0, home: "C" };
+}
+const lvRow = () => LEVELS[hero.lv - 1];
+const maxHp = () => lvRow()[1], maxMp = () => lvRow()[2];
+const heroAtk = () => lvRow()[3] + GEAR.weapon;
+const heroDef = () => lvRow()[4] + GEAR.armour + GEAR.shield;
+const heroAgi = () => 6 + hero.lv;
+const known = () => SPELLS.filter((s) => s.lv <= hero.lv);
+
+// ---- World state ----
+let view = "over", world = OVER, lit = [false, false, false, false], litOverride = null, mode = "walk";
+let camX = 0, camY = 0, clock = 0, shake = 0, shakeMag = 0, flash = 0, msg = null, overlay = null, swirl = null;
+let sparks = [], popups = [], fog = [], banner = null, sinceFight = 0;
+const litCount = () => lit.filter(Boolean).length;
+const tile = (x, y) => (x < 0 || y < 0 || x >= world.w || y >= world.h) ? (world.kind === "over" ? "M" : "#") : world.grid[y][x];
+function walkable(x, y) {
+  const t = tile(x, y);
+  if (world.kind === "over") return t === "x" ? litCount() === 4 : !"M~".includes(t);
+  if (t === "D") return hero.keys > 0;
+  return t !== "#" && t !== "b";
+}
+function placeHero(at) { hero.x = at.x; hero.y = at.y; hero.px = at.x * T; hero.py = at.y * T; hero.moving = null; }
+function resetDungeon() {
+  DUNGEON.grid = DUNGEON.rows.map((r) => r.split(""));
+  hero.keys = 0;
+}
+for (let i = 0; i < 26; i++) fog.push({ x: rand() * (W + 120) - 60, y: 20 + rand() * (H - 40), r: 18 + rand() * 26, v: 4 + rand() * 6, a: rand() * 6 });
+
+// ---- Baked tile art (code-drawn, never sprites) ----
+const PAL = {
+  grass: "#5f9f45", grass2: "#4f8a3a", grass3: "#7dbb55", tree: "#2f6b3a", tree2: "#3f8a46", treeHi: "#6cb35a", trunk: "#6b4a2e",
+  hill: "#79a64e", hill2: "#5a8a3c", rock: "#8a8174", rock2: "#5e574f", rockHi: "#b9b0a0", cap: "#f4f6ff",
+  water: "#3b74c4", water2: "#5d95dd", water3: "#2c5aa6", road: "#caa56b", road2: "#b38d55",
+  marsh: "#56693a", marsh2: "#3c5c55", reed: "#9aac52", snow: "#e8eef8", snow2: "#c9d5ea", ruin: "#9b8f7a", ruin2: "#7d725f", stone: "#c2bcae",
+  sand: "#e3cf94", sand2: "#d2bb7c", wood: "#8a5a32", wood2: "#6b4423", roofRed: "#c2493d", roofBlue: "#3f6fb0", roofWhite: "#eef3fb",
+  wall: "#efe5cc", wallShade: "#c4b694", gloam: "#2a1a40", gloam2: "#4a2f73", gloamHi: "#9d7be0",
+  floor: "#4a4256", floor2: "#3d3648", brick: "#6d6278", brick2: "#544a60", brickTop: "#8b809a",
+};
+function paintTile(g, t, x, y, r, neighbour) {
+  const X = x * T, Y = y * T, f = (c, a, b, w, h) => { g.fillStyle = c; g.fillRect(X + a, Y + b, w, h); };
+  const dots = (c, n, w = 1, h = 1) => { for (let i = 0; i < n; i++) f(c, Math.floor(r() * (16 - w)), Math.floor(r() * (16 - h)), w, h); };
+  const grass = () => { f(PAL.grass, 0, 0, 16, 16); dots(PAL.grass2, 5, 2, 1); dots(PAL.grass3, 3); };
+  switch (t) {
+    case ".": grass(); break;
+    case ",": grass(); for (const c of ["#f2d16b", "#f28fb0", "#ffffff", "#f2d16b"]) dots(c, 1); break;
+    case "T": grass(); for (const [a, b] of [[1, 2], [8, 6]]) { f(PAL.trunk, a + 3, b + 6, 2, 3); f(PAL.tree, a, b, 8, 7); f(PAL.tree2, a + 1, b, 6, 6); f(PAL.treeHi, a + 2, b + 1, 2, 2); } break;
+    case "h": grass(); f(PAL.hill2, 1, 9, 14, 4); f(PAL.hill, 3, 6, 10, 5); f(PAL.grass3, 5, 6, 4, 1); break;
+    case "M": f(PAL.rock2, 0, 0, 16, 16); for (const [a, b, s] of [[0, 4, 10], [6, 1, 10]]) { for (let i = 0; i < s / 2; i++) { f(PAL.rock, a + s / 2 - i - 1, b + i * 2, (i + 1) * 2, 2); } f(PAL.cap, a + s / 2 - 1, b, 2, 2); f(PAL.rockHi, a + s / 2 - 2, b + 3, 1, 3); } break;
+    case "~": f(PAL.water, 0, 0, 16, 16); dots(PAL.water2, 3, 3, 1); dots(PAL.water3, 2, 2, 1); break;
+    case "=": grass(); { const link = (dx, dy) => "=BCVFH1234".includes(tile(x + dx, y + dy));
+      f(PAL.road, 5, 5, 6, 6);
+      if (link(-1, 0)) f(PAL.road, 0, 5, 6, 6); if (link(1, 0)) f(PAL.road, 10, 5, 6, 6);
+      if (link(0, -1)) f(PAL.road, 5, 0, 6, 6); if (link(0, 1)) f(PAL.road, 5, 10, 6, 6);
+      f(PAL.road2, 6 + Math.floor(r() * 4), 6 + Math.floor(r() * 4), 1, 1); } break;
+    case "B": f(PAL.water, 0, 0, 16, 16); f(PAL.wood, 0, 3, 16, 10); for (let i = 0; i < 16; i += 4) f(PAL.wood2, i, 3, 1, 10); f(PAL.wood2, 0, 3, 16, 1); f(PAL.wood2, 0, 12, 16, 1); break;
+    case "m": f(PAL.marsh, 0, 0, 16, 16); f(PAL.marsh2, Math.floor(r() * 8), Math.floor(r() * 8) + 2, 7, 3); dots(PAL.reed, 4, 1, 3); break;
+    case "*": f(PAL.snow, 0, 0, 16, 16); dots(PAL.snow2, 5, 2, 1); dots("#ffffff", 2); break;
+    case "r": f(PAL.ruin, 0, 0, 16, 16); dots(PAL.ruin2, 6, 2, 2); if (r() < 0.35) { f(PAL.stone, 6, 3, 4, 10); f(PAL.ruin2, 6, 3, 4, 1); f(PAL.rockHi, 7, 4, 1, 8); } break;
+    case ":": f(PAL.sand, 0, 0, 16, 16); dots(PAL.sand2, 5, 2, 1); break;
+    case "x": f(PAL.gloam, 0, 0, 16, 16); dots(PAL.gloam2, 6, 3, 2); dots(PAL.gloamHi, 2); break;
+    case "C": grass(); f(PAL.wallShade, 1, 6, 14, 9); f(PAL.wall, 2, 6, 12, 8); for (const a of [0, 11]) { f(PAL.wall, a, 2, 5, 13); f(PAL.roofRed, a, 0, 5, 3); } f(PAL.roofRed, 5, 3, 6, 3); f("#3a2a1e", 7, 10, 2, 5); f(PAL.gold, 8, 0, 1, 3); break;
+    case "V": case "F": { const snowy = t === "F"; snowy ? f(PAL.snow, 0, 0, 16, 16) : grass();
+      for (const [a, b] of [[1, 3], [8, 7]]) { f(PAL.wall, a, b + 3, 7, 5); f(snowy ? PAL.roofWhite : PAL.roofBlue, a - 1, b, 9, 4); f(snowy ? PAL.snow2 : "#2c4f86", a - 1, b + 3, 9, 1); f("#3a2a1e", a + 3, b + 5, 2, 3); } } break;
+    case "H": grass(); f(PAL.wood, 3, 7, 10, 7); f(PAL.wood2, 2, 4, 12, 4); f("#3a2a1e", 7, 10, 2, 4); f("#d9d2c0", 10, 1, 2, 4); break;
+    case "1": case "2": case "3": case "4": { const base = { 1: PAL.grass, 2: PAL.marsh, 3: PAL.snow, 4: PAL.ruin }[t]; f(base, 0, 0, 16, 16);
+      f(PAL.rock2, 4, 5, 8, 11); f(PAL.stone, 5, 5, 6, 10); f(PAL.rock2, 3, 3, 10, 3); f(PAL.rockHi, 6, 7, 1, 7); f("#2b2433", 7, 11, 2, 4); } break;
+    case "G": f(PAL.gloam, 0, 0, 16, 16); f("#05030a", 3, 5, 10, 11); f(PAL.gloam2, 2, 4, 12, 2); f(PAL.gloamHi, 7, 8, 2, 2); break;
+    // dungeon
+    case "#": f(PAL.brick2, 0, 0, 16, 16); for (let row = 0; row < 4; row++) for (let i = (row % 2) * 4; i < 16; i += 8) f(PAL.brick, i, row * 4, 7, 3); if (!neighbour("#", 0, 1)) f("#2a2433", 0, 14, 16, 2); if (!neighbour("#", 0, -1)) f(PAL.brickTop, 0, 0, 16, 2); break;
+    case "<": case ">": case "c": case "o": case "D": case "d": case "b":
+    default: f(PAL.floor, 0, 0, 16, 16); f(PAL.floor2, 0, 0, 16, 1); f(PAL.floor2, 0, 8, 16, 1); f(PAL.floor2, 7, 0, 1, 8); f(PAL.floor2, 3, 8, 1, 8); f(PAL.floor2, 12, 8, 1, 8);
+      if (t === "<" || t === ">") for (let i = 0; i < 4; i++) f(i % 2 ? "#2a2433" : PAL.brickTop, 2, 2 + i * 3, 12, 2);
+      if (t === "D") { f(PAL.wood2, 1, 0, 14, 16); f(PAL.wood, 2, 1, 12, 14); f("#b9b0a0", 9, 7, 2, 3); f("#2a2433", 9, 8, 1, 1); }
+      if (t === "d") { f("#141019", 2, 0, 12, 16); }
+      if (t === "b") { f(PAL.rock2, 4, 7, 8, 8); f(PAL.stone, 3, 5, 10, 3); }
+  }
+}
+const bakeCache = {};
+function baked() {
+  const key = world.kind === "over" ? `over:${lit.map(Number).join("")}` : `dun:${world.grid.map((r) => r.join("")).join("")}`;
+  if (bakeCache[key]) return bakeCache[key];
+  if (world.kind !== "over") for (const k in bakeCache) if (k.startsWith("dun:")) delete bakeCache[k];
+  const c = document.createElement("canvas"); c.width = world.w * T; c.height = world.h * T;
+  const g = c.getContext("2d");
+  for (let y = 0; y < world.h; y++) for (let x = 0; x < world.w; x++) {
+    let t = world.grid[y][x];
+    if (t === "x" && litCount() === 4) t = "r";
+    if (world.kind === "dungeon" && t === ".") t = "_";
+    const nb = (ch, dx, dy) => tile(x + dx, y + dy) === ch;
+    paintTile(g, t, x, y, mulberry32(x * 7919 + y * 104729 + 17), nb);
+  }
+  if (world.kind === "over") {
+    // Regions under the Gloam are greyed and tinted violet.
+    for (let y = 0; y < world.h; y++) for (let x = 0; x < world.w; x++) {
+      const reg = OVER.region[y][x];
+      const dim = reg === -1 ? litCount() < 4 : !lit[reg];
+      if (!dim) continue;
+      g.globalCompositeOperation = "saturation"; g.fillStyle = "rgba(128,128,128,0.75)"; g.fillRect(x * T, y * T, T, T);
+      g.globalCompositeOperation = "source-over"; g.fillStyle = "rgba(42,26,64,0.32)"; g.fillRect(x * T, y * T, T, T);
+    }
+  }
+  return (bakeCache[key] = c);
+}
+
+// Battle backdrops: code-drawn bands and silhouettes per ground type.
+const BACKS = {
+  meadow: { sky: ["#86c3ec", "#a2d3f0", "#c3e4f2"], far: "#86b56f", near: "#5f9f45", ground: "#4f8a3a", fleck: "#7dbb55" },
+  hills: { sky: ["#8cbfe0", "#a8cfe6", "#c6dfe9"], far: "#6d9a54", near: "#79a64e", ground: "#5a8a3c", fleck: "#8fbd5e" },
+  marsh: { sky: ["#7f9b9a", "#93aba5", "#a9bdb0"], far: "#5b6e4a", near: "#4d5f38", ground: "#3c4d2e", fleck: "#9aac52" },
+  snow: { sky: ["#9fb6d9", "#b8cae5", "#d3def0"], far: "#f2f6fc", near: "#d9e2f1", ground: "#e8eef8", fleck: "#c9d5ea" },
+  ruins: { sky: ["#c9a27a", "#d8b48a", "#e6c89c"], far: "#8a7f6c", near: "#9b8f7a", ground: "#7d725f", fleck: "#b8b2a4" },
+  dungeon: { sky: ["#141019", "#1b1622", "#211b2a"], far: "#2b2433", near: "#352c3f", ground: "#2a2230", fleck: "#4a4256" },
+};
+const backCache = {};
+function backdrop(kind, dim) {
+  const key = kind + (dim ? ":dim" : "");
+  if (backCache[key]) return backCache[key];
+  const P = BACKS[kind], c = document.createElement("canvas"); c.width = W; c.height = 150;
+  const g = c.getContext("2d"), r = mulberry32(kind.length * 31 + 7);
+  P.sky.forEach((col, i) => { g.fillStyle = col; g.fillRect(0, i * 30, W, 31); });
+  g.fillStyle = P.sky[2]; g.fillRect(0, 90, W, 30);
+  const ridge = (col, base, amp, step) => { g.fillStyle = col; let h = amp / 2; for (let x = 0; x < W; x += step) { h = clamp(h + (r() - 0.5) * amp * 0.6, 4, amp); g.fillRect(x, base - h, step, 150); } };
+  ridge(P.far, 92, kind === "snow" ? 46 : 30, 8);
+  ridge(P.near, 112, 18, 6);
+  g.fillStyle = P.ground; g.fillRect(0, 118, W, 32);
+  g.fillStyle = P.fleck; for (let i = 0; i < 70; i++) g.fillRect(Math.floor(r() * W), 120 + Math.floor(r() * 28), 2, 1);
+  if (kind === "marsh") { g.fillStyle = "#3c5c55"; for (let i = 0; i < 6; i++) g.fillRect(Math.floor(r() * W), 124 + Math.floor(r() * 20), 18 + Math.floor(r() * 20), 3); }
+  if (kind === "ruins") { g.fillStyle = "#c2bcae"; for (const x of [30, 150, 380]) { const hh = 24 + Math.floor(r() * 30); g.fillRect(x, 118 - hh, 10, hh); g.fillStyle = "#7d725f"; g.fillRect(x, 118 - hh, 10, 2); g.fillStyle = "#c2bcae"; } }
+  if (kind === "dungeon") { g.fillStyle = "#0c0a10"; for (let x = 0; x < W; x += 14) { const hh = 6 + Math.floor(r() * 18); g.fillRect(x, 0, 6, hh); g.fillRect(x + 2, hh, 2, 4); } }
+  if (kind === "meadow" || kind === "hills") { g.fillStyle = "#ffffff"; for (const [x, y] of [[60, 18], [250, 30], [340, 12]]) { g.fillRect(x, y, 28, 5); g.fillRect(x + 6, y - 3, 14, 3); } }
+  if (dim) { g.globalCompositeOperation = "saturation"; g.fillStyle = "rgba(128,128,128,0.7)"; g.fillRect(0, 0, W, 150); g.globalCompositeOperation = "source-over"; g.fillStyle = "rgba(42,26,64,0.3)"; g.fillRect(0, 0, W, 150); }
+  return (backCache[key] = c);
+}
+
+// ---- Input ----
+const keys = new Set(), pressed = new Set();
+let lastInput = -1e9, lastDevice = matchMedia("(pointer: coarse)").matches ? "touch" : "kbm", padLabel = "", padWas = {}, muted = false;
+const touch = { shown: matchMedia("(pointer: coarse)").matches, dir: null, a: false, b: false };
+const TOUCH = { pad: { x: 42, y: 184, r: 30 }, a: { x: 390, y: 182, r: 14 }, b: { x: 362, y: 206, r: 11 } };
+const touchPointers = new Map();
+const KEYMAP = { arrowleft: "left", a: "left", arrowright: "right", d: "right", arrowup: "up", w: "up", arrowdown: "down", s: "down",
+  z: "a", " ": "a", enter: "a", j: "a", x: "b", backspace: "b", k: "b", escape: "menu", m: "mute" };
+const press = (k) => { pressed.add(k); lastInput = performance.now(); };
+function toGame(ev) { const r = cv.getBoundingClientRect(); return { x: ((ev.clientX - r.left) / r.width) * W, y: ((ev.clientY - r.top) / r.height) * H }; }
+const near = (p, b, extra = 5) => Math.hypot(p.x - b.x, p.y - b.y) < b.r + extra;
+function padDir(p) {
+  const dx = p.x - TOUCH.pad.x, dy = p.y - TOUCH.pad.y;
+  if (Math.hypot(dx, dy) < 6) return null;
+  return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down");
+}
+function syncTouch() {
+  touch.dir = null;
+  for (const [, v] of touchPointers) if (v && v.role === "pad") touch.dir = v.dir;
+}
+const HIT = { sound: (p) => p.x > 396 && p.y < 18, menu: (p) => p.x > 300 && p.x < 334 && p.y < 18 };
+cv.addEventListener("contextmenu", (ev) => ev.preventDefault());
+cv.addEventListener("pointerdown", (ev) => {
+  cv.focus(); lastInput = performance.now();
+  const p = toGame(ev);
+  if (ev.pointerType === "touch") { lastDevice = "touch"; if (!touch.shown) { touch.shown = true; syncSeg(); } }
+  else lastDevice = "kbm";
+  if (HIT.sound(p)) { muted = !muted; return; }
+  if (HIT.menu(p)) { press("menu"); return; }
+  if (touch.shown) {
+    if (near(p, TOUCH.a)) { press("a"); touchPointers.set(ev.pointerId, { role: "a" }); return; }
+    if (near(p, TOUCH.b)) { press("b"); touchPointers.set(ev.pointerId, { role: "b" }); return; }
+    if (Math.hypot(p.x - TOUCH.pad.x, p.y - TOUCH.pad.y) < TOUCH.pad.r + 10) {
+      touchPointers.set(ev.pointerId, { role: "pad", dir: padDir(p) }); syncTouch(); cv.setPointerCapture?.(ev.pointerId); return;
+    }
+  }
+  tapAt(p);
+});
+cv.addEventListener("pointermove", (ev) => {
+  const t = touchPointers.get(ev.pointerId);
+  if (t && t.role === "pad") { t.dir = padDir(toGame(ev)); syncTouch(); lastInput = performance.now(); }
+});
+const endPointer = (ev) => { touchPointers.delete(ev.pointerId); syncTouch(); };
+window.addEventListener("pointerup", endPointer);
+window.addEventListener("pointercancel", endPointer);
+cv.addEventListener("keydown", (ev) => {
+  const k = KEYMAP[ev.key.toLowerCase()];
+  if (!k) return;
+  ev.preventDefault(); lastDevice = "kbm";
+  if (!ev.repeat) press(k);
+  keys.add(k); lastInput = performance.now();
+});
+cv.addEventListener("keyup", (ev) => keys.delete(KEYMAP[ev.key.toLowerCase()]));
+cv.addEventListener("blur", () => keys.clear());
+
+function setPadStatus(label, on) {
+  if (label === padLabel) return;
+  padLabel = label;
+  const el = document.getElementById("pad-status"); el.textContent = label; el.dataset.on = String(on);
+}
+let padDirHeld = null;
+function readPad(now) {
+  let pads;
+  try { pads = navigator.getGamepads ? navigator.getGamepads() : []; }
+  catch (e) { setPadStatus("This viewer blocks controller input. Open design/concept-sheet.html in a browser tab to use it.", false); return; }
+  const p = [...pads].find((g) => g && g.connected);
+  if (!p) { setPadStatus("No controller yet. Press any button on it.", false); padDirHeld = null; return; }
+  setPadStatus(`Connected: ${p.id.replace(/\s*\(.*\)\s*/g, " ").trim()}`, true);
+  const b = (i) => Boolean(p.buttons[i] && p.buttons[i].pressed);
+  const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+  let dir = b(12) ? "up" : b(13) ? "down" : b(14) ? "left" : b(15) ? "right" : null;
+  if (!dir && Math.hypot(ax, ay) > 0.5) dir = Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? "left" : "right") : (ay < 0 ? "up" : "down");
+  const now2 = { a: b(0), b: b(1), menu: b(9) || b(3), mute: b(8), dir };
+  for (const k of ["a", "b", "menu", "mute"]) if (now2[k] && !padWas[k]) { press(k); lastDevice = "pad"; }
+  if (dir && dir !== padWas.dir) { press(dir); lastDevice = "pad"; }
+  if (dir || p.buttons.some((x) => x.pressed)) { lastInput = now; lastDevice = "pad"; }
+  padDirHeld = dir; padWas = now2;
+}
+const demo = () => performance.now() - lastInput > 6000;
+function heldDir() {
+  if (touch.dir) return touch.dir;
+  if (padDirHeld) return padDirHeld;
+  for (const k of ["up", "down", "left", "right"]) if (keys.has(k)) return k;
+  return null;
+}
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+// ---- Map: walking, encounters, sites ----
+let route = [], routeI = 0, path = [];
+function bfs(tx, ty) {
+  const W2 = world.w, prev = new Map(), start = hero.y * W2 + hero.x, goal = ty * W2 + tx, q = [start];
+  prev.set(start, -1);
+  while (q.length) {
+    const cur = q.shift(); if (cur === goal) break;
+    const cx = cur % W2, cy = Math.floor(cur / W2);
+    for (const [dx, dy] of Object.values(DIRS)) {
+      const nx = cx + dx, ny = cy + dy, n = ny * W2 + nx;
+      if (prev.has(n) || !(walkable(nx, ny) || (nx === tx && ny === ty))) continue;
+      prev.set(n, cur); q.push(n);
+    }
+  }
+  if (!prev.has(goal)) return [];
+  const out = []; for (let c = goal; c !== start; c = prev.get(c)) out.push([c % W2, Math.floor(c / W2)]);
+  return out.reverse();
+}
+function demoRoute() {
+  if (world.kind === "over") return ["C", "1", "C", "V", "2", "V", "H", "C"].filter((k) => !(SITES[k].kind === "beacon" && lit[SITES[k].n]));
+  return ["c", "D", ">"];
+}
+function nextDemoTarget() {
+  if (world.kind === "over") {
+    if (!route.length || routeI >= route.length) { route = demoRoute(); routeI = 0; }
+    const s = OVER.sites[route[routeI]]; routeI++;
+    return s;
+  }
+  const want = hero.keys > 0 ? "D" : "c";
+  let best = null, bd = 1e9;
+  world.grid.forEach((row, y) => row.forEach((t, x) => { if (t === want) { const d = Math.abs(x - hero.x) + Math.abs(y - hero.y); if (d < bd) { bd = d; best = { x, y }; } } }));
+  if (!best || (want === "c" && !world.grid.flat().includes("D"))) best = DUNGEON.sites[">"];
+  return best;
+}
+function tryStep(dir) {
+  const [dx, dy] = DIRS[dir];
+  if (dx) hero.face = dx;
+  const nx = hero.x + dx, ny = hero.y + dy, t = tile(nx, ny);
+  if (world.kind === "dungeon" && t === "c") { openChest(nx, ny); return false; }
+  if (!walkable(nx, ny)) { if (world.kind === "dungeon" && t === "D") say("The door is locked. You need an iron key.", 1.6); return false; }
+  hero.moving = { fx: hero.x, fy: hero.y, t: 0 };
+  hero.x = nx; hero.y = ny;
+  return true;
+}
+function openChest(x, y) {
+  world.grid[y][x] = "o"; hero.keys++;
+  say("You open the chest. An iron key!", 1.8);
+  burstAt(x * T + 8, y * T + 8, ["#f3b84a", "#ffffff", "#ffe08a"], 10, true);
+}
+function arrive() {
+  hero.step++; sinceFight++;
+  const t = tile(hero.x, hero.y);
+  if (world.kind === "dungeon") {
+    if (t === "D") { world.grid[hero.y][hero.x] = "d"; hero.keys--; say("The key turns. The door creaks open.", 1.6); return; }
+    if (t === ">") { say("Stairs down. The warden waits two floors below.", 2.2); setTimeout(() => { if (view === "dungeon") enterDungeon(); }, 1600); path = []; return; }
+    if (sinceFight > 6 && rand() < ODDS.dungeon) startFight("dungeon", pickPool("dungeon"));
+    return;
+  }
+  const site = SITES[t];
+  if (site) { visit(site, t); return; }
+  if (t === "x" || t === "G") return;
+  const reg = OVER.region[hero.y][hero.x];
+  let odds = ODDS[t] ?? 1 / 20;
+  if (reg >= 0 && lit[reg]) odds *= 2 / 3;
+  if (sinceFight > 5 && rand() < odds) {
+    const ground = t === "m" ? "marsh" : t === "*" ? "snow" : t === "r" ? "ruins" : t === "h" ? "hills" : "meadow";
+    const pool = t === "m" ? "marsh" : t === "*" ? "snow" : t === "r" ? "ruins" : t === "h" ? "hills" : "meadow";
+    startFight(ground, pickPool(pool));
+  }
+}
+const pickPool = (name) => POOLS[name][Math.floor(rand() * POOLS[name].length)];
+function visit(site, ch) {
+  path = [];
+  if (site.kind === "town") {
+    hero.hp = maxHp(); hero.mp = maxMp(); hero.home = ch;
+    if (ch === "H") hero.keys = Math.max(hero.keys, 1);
+    banner = { title: site.name.toUpperCase(), t: 2.2 };
+    say(site.text, 2.4);
+    burstAt(hero.x * T + 8, hero.y * T + 4, ["#8fd07a", "#ffffff"], 8, true);
+    pauseT = 1.2;
+  } else if (site.kind === "beacon") {
+    if (lit[site.n]) { say(`${site.name}. The ${REGION_NAMES[site.n]} beacon burns bright.`, 1.8); return; }
+    say(`${site.name}. Its warden waits beside the cold beacon...`, 1.6);
+    pauseT = 1.4;
+    pendingWarden = site;
+  } else if (site.kind === "hollow") {
+    say("Gloam's Hollow. Darkness breathes in the cave mouth. (The finale.)", 2.4);
+  }
+}
+let pauseT = 0, pendingWarden = null;
+function say(text, t = 2) { msg = { text, t }; }
+
+// ---- Battle ----
+let battle = null;
+const SLOTS_X = { 1: [304], 2: [282, 344], 3: [262, 316, 370] };
+function startFight(ground, kinds, wardenSite = null) {
+  sinceFight = 0; path = [];
+  const reg = world.kind === "over" ? OVER.region[hero.y][hero.x] : -2;
+  const dim = reg === -1 || (reg >= 0 && !lit[reg]);
+  const foes = kinds.map((k, i) => {
+    const d = FOE[k];
+    return { ...d, kind: k, hpNow: d.hp, x: SLOTS_X[kinds.length][i], y: d.scale === 3 ? 96 : 104 + (i % 2) * 8, flash: 0, hit: 0, lunge: 0, dying: 0, gone: false, sleep: 0, charged: false, glow: 0 };
+  });
+  battle = { ground, dim, foes, wardenSite, menu: "cmd", idx: 0, sub: 0, target: 0, co: null, wait: 0, msg: "", heroLunge: 0, heroHit: 0, heroGuard: 0, ring: null, think: 0.8, sleep: 0, outcome: null };
+  const names = foes.map((f) => f.name);
+  battle.msg = wardenSite ? `${foes[0].name}, warden of the ${REGION_NAMES[wardenSite.n]} beacon, rises!` :
+    names.length === 1 ? `A ${names[0]} blocks the way!` : `${names.length === 2 ? names.join(" and ") : names.slice(0, -1).join(", ") + " and " + names.at(-1)} appear!`;
+  swirl = { t: 0, dur: 0.6 };
+  mode = "swirl";
+  if (!wardenSite && foes.some((f) => f.agi > heroAgi() + 4) && rand() < 0.25) {
+    battle.co = ambush(); battle.wait = 0.9;
+  }
+}
+const living = () => battle.foes.filter((f) => !f.gone && f.dying === 0 && f.hpNow > 0);
+const cmdList = () => ["FIGHT", "SPELL", "ITEM", "FLEE"];
+function* ambush() {
+  battle.menu = null;
+  const f = living().sort((a, b) => b.agi - a.agi)[0];
+  battle.msg = `The ${f.name} strikes before you can act!`;
+  yield 0.5;
+  yield* foeAct(f);
+  battle.menu = "cmd";
+}
+function damage(atk, def, lo = 0.35, hi = 0.5) {
+  const base = atk - def / 2;
+  if (base <= 0) return rand() < 0.5 ? 0 : 1;
+  return Math.max(1, Math.round(base * (lo + rand() * (hi - lo))));
+}
+function foeCentre(f) { const s = (f.scale || 2) * 16; return { x: f.x, y: f.y + s / 2 - 16 }; }
+function heroCentre() { return { x: 88 + battle.heroLunge * 44, y: 112 }; }
+function* heroStrike(target) {
+  battle.msg = `${hero.name} attacks!`;
+  yield 0.2;
+  const c = foeCentre(target);
+  battle.ring = { x: c.x, y: c.y, t: 0, dur: 0.42, hit: null, who: "hero" };
+  for (let i = 0; i < 12; i++) { battle.heroLunge = Math.min(1, (i + 1) / 12); yield 0.035; }
+  const valor = battle.ring.hit === true; battle.ring = null;
+  let d = damage(heroAtk(), target.def);
+  const crit = rand() < 1 / 24;
+  if (crit) d = Math.round(heroAtk() * (0.45 + rand() * 0.1));
+  if (valor) d = Math.round(Math.max(d, 1) * 1.5);
+  hurtFoe(target, d, crit || valor);
+  battle.msg = valor ? `VALOR! ${d} damage to the ${target.name}.` : crit ? `A heroic blow! ${d} damage to the ${target.name}.` : d ? `${d} damage to the ${target.name}.` : `The ${target.name} shrugs it off.`;
+  for (let i = 0; i < 8; i++) { battle.heroLunge = 1 - (i + 1) / 8; yield 0.03; }
+  yield 0.45;
+}
+function hurtFoe(f, d, big) {
+  f.hpNow -= d; f.hit = 0.3;
+  if (f.sleep && d > 0) f.sleep = 0;
+  const c = foeCentre(f);
+  popups.push({ x: c.x, y: c.y - 14, text: String(d), color: big ? C.gold : "#ffffff", life: 0.9, big });
+  burst(c.x, c.y, ["#ffffff", "#ffd27a", C.gold], big ? 18 : 9);
+  shakeIt(big ? 3 : 1.5, big ? 0.25 : 0.12);
+}
+function* castSpell(sp, target) {
+  hero.mp -= sp.mp;
+  battle.msg = `${hero.name} casts ${sp.name}!`;
+  const h = heroCentre();
+  for (let i = 0; i < 8; i++) { sparkle(h.x, h.y, sp.id === "mend" || sp.id === "restore" ? C.leaf : sp.id === "lull" ? C.gloam : C.gold); yield 0.04; }
+  if (sp.id === "mend" || sp.id === "restore") {
+    const amt = sp.id === "mend" ? ri(17, 23) : ri(75, 90), got = Math.min(amt, maxHp() - hero.hp);
+    hero.hp += got;
+    popups.push({ x: h.x, y: h.y - 22, text: `+${got}`, color: C.leaf, life: 1 });
+    battle.msg = `${hero.name} recovers ${got} HP.`;
+    yield 0.8; return;
+  }
+  const targets = sp.group ? living() : [target];
+  if (sp.id === "lull") {
+    const slept = [];
+    for (const f of targets) if (!f.warden && rand() < 0.75) { f.sleep = ri(2, 3); slept.push(f.name); popups.push({ x: f.x, y: f.y - 20, text: "Zz", color: C.gloam, life: 1 }); }
+    battle.msg = slept.length ? `${slept.join(" and ")} ${slept.length > 1 ? "fall" : "falls"} asleep.` : "The spell doesn't take hold.";
+    yield 0.9; return;
+  }
+  // Spark / Flare: a bolt flies, ignores armour.
+  for (const f of targets) {
+    const c = foeCentre(f);
+    for (let i = 0; i <= 8; i++) { battle.bolt = { x: h.x + (c.x - h.x) * (i / 8), y: h.y + (c.y - h.y) * (i / 8) }; yield 0.025; }
+    battle.bolt = null;
+    const d = sp.id === "spark" ? ri(8, 12) : ri(22, 30);
+    hurtFoe(f, d, false);
+    burst(c.x, c.y, ["#ff7a3d", "#ffd27a", "#ffffff"], 14);
+    battle.msg = `${d} fire damage to the ${f.name}.`;
+    yield 0.35;
+  }
+  yield 0.4;
+}
+function* useHerb() {
+  hero.herbs--;
+  const got = Math.min(ri(22, 28), maxHp() - hero.hp); hero.hp += got;
+  const h = heroCentre();
+  for (let i = 0; i < 6; i++) { sparkle(h.x, h.y, C.leaf); yield 0.04; }
+  popups.push({ x: h.x, y: h.y - 22, text: `+${got}`, color: C.leaf, life: 1 });
+  battle.msg = `${hero.name} chews a herb and recovers ${got} HP.`;
+  yield 0.8;
+}
+function* foeAct(f) {
+  if (f.sleep > 0) { f.sleep--; battle.msg = f.sleep ? `The ${f.name} is fast asleep.` : `The ${f.name} wakes up!`; yield 0.6; return; }
+  if (f.trait === "charge" && !f.charged && rand() < 0.4) {
+    f.charged = true; f.glow = 1;
+    battle.msg = `The ${f.name} digs in and gathers itself...`; yield 0.9; return;
+  }
+  // Warn before harm: the foe flashes white first.
+  f.flash = 0.35; yield 0.4;
+  if (f.trait === "spark" && rand() < 0.35) {
+    battle.msg = `The ${f.name} casts Spark!`;
+    const c = foeCentre(f), h = heroCentre();
+    for (let i = 0; i <= 8; i++) { battle.bolt = { x: c.x + (h.x - c.x) * (i / 8), y: c.y + (h.y - c.y) * (i / 8) }; yield 0.025; }
+    battle.bolt = null;
+    yield* hurtHero(ri(6, 10), f, false);
+    return;
+  }
+  if (f.trait === "spores" && rand() < 0.3) {
+    battle.msg = `The ${f.name} puffs sleepy spores!`;
+    const h = heroCentre(); for (let i = 0; i < 10; i++) { sparkle(h.x, h.y - 6, "#d9d2c0"); yield 0.03; }
+    if (rand() < 0.5) { battle.sleep = 1; battle.msg = `${hero.name} nods off!`; } else battle.msg = `${hero.name} holds their breath.`;
+    yield 0.8; return;
+  }
+  battle.msg = f.charged ? `The ${f.name} charges!` : `The ${f.name} attacks!`;
+  const h = heroCentre();
+  battle.ring = { x: h.x, y: h.y, t: 0, dur: 0.32, hit: null, who: "foe" };
+  for (let i = 0; i < 9; i++) { f.lunge = (i + 1) / 9; yield 0.035; }
+  const guard = battle.ring.hit === true; battle.ring = null;
+  let d = damage(f.atk, heroDef());
+  if (f.charged) { d = Math.round(d * 2) + 1; f.charged = false; f.glow = 0; }
+  if (guard) d = Math.floor(d / 2);
+  for (let i = 0; i < 6; i++) { f.lunge = 1 - (i + 1) / 6; if (i === 0) yield* hurtHero(d, f, guard, true); yield 0.03; }
+  if (f.trait === "steal" && rand() < 0.25 && hero.gold > 0) { const g = Math.min(hero.gold, ri(3, 8)); hero.gold -= g; battle.msg = `The ${f.name} snatches ${g} gold and flaps away!`; f.gone = true; yield 0.8; }
+  if (f.trait === "drain" && d > 0) { f.hpNow = Math.min(f.hp, f.hpNow + Math.ceil(d / 2)); }
+  yield 0.35;
+}
+function* hurtHero(d, f, guard, quick = false) {
+  hero.hp = Math.max(0, hero.hp - d); battle.heroHit = 0.3;
+  const h = heroCentre();
+  popups.push({ x: h.x, y: h.y - 18, text: String(d), color: C.hurt, life: 0.9 });
+  burst(h.x, h.y, ["#ff6b5e", "#ffffff"], d ? 8 : 3);
+  if (d) shakeIt(Math.min(4, 1 + d / 6), 0.18);
+  if (d && hero.hp / maxHp() < 0.25) flash = 0.12;
+  battle.msg = guard ? `Guarded! ${hero.name} takes only ${d}.` : d ? `${hero.name} takes ${d} damage.` : `${hero.name} dodges!`;
+  if (!quick) yield 0.5;
+}
+function* roundScript(action) {
+  battle.menu = null;
+  if (battle.sleep) { battle.sleep = 0; battle.msg = `${hero.name} is asleep...`; yield 0.8; }
+  else if (action.type === "fight") yield* heroStrike(action.target);
+  else if (action.type === "spell") yield* castSpell(action.spell, action.target);
+  else if (action.type === "herb") yield* useHerb();
+  else if (action.type === "flee") {
+    battle.msg = `${hero.name} turns to run...`; yield 0.5;
+    if (battle.wardenSite) { battle.msg = "The warden blocks the way!"; yield 0.7; }
+    else if (rand() < 0.66) { battle.msg = "You got away."; yield 0.7; battle.outcome = "fled"; return; }
+    else { battle.msg = "Cut off! You can't escape."; yield 0.7; }
+  }
+  yield* sweepFallen();
+  if (!living().length) { yield* victory(); return; }
+  const order = living().sort((a, b) => (b.agi + rand() * 8) - (a.agi + rand() * 8));
+  for (const f of order) {
+    if (f.hpNow <= 0 || f.gone) continue;
+    yield* foeAct(f);
+    if (hero.hp <= 0) { yield* defeat(); return; }
+  }
+  if (!living().length) { yield* victory(); return; }
+  battle.menu = "cmd"; battle.think = 0.7 + rand() * 0.4;
+}
+function* sweepFallen() {
+  for (const f of battle.foes) if (f.hpNow <= 0 && !f.dying && !f.gone) {
+    f.dying = 0.001;
+    const c = foeCentre(f);
+    battle.msg = f.warden ? `${f.name} kneels. The Gloam pours out of it like smoke.` : `The ${f.name} shakes off the Gloam and runs for home!`;
+    for (let i = 0; i < 4; i++) { sparkle(c.x, c.y, "#ffffff"); }
+    yield f.warden ? 1.4 : 0.7;
+  }
+}
+function* victory() {
+  const xp = battle.foes.reduce((s, f) => s + (f.hpNow <= 0 ? f.xp : 0), 0), gold = battle.foes.reduce((s, f) => s + (f.hpNow <= 0 ? f.gold : 0), 0);
+  hero.xp += xp; hero.gold += gold;
+  battle.msg = `Victory! Valor +${xp}, gold +${gold}.`;
+  yield 1.1;
+  while (hero.lv < 15 && hero.xp >= LEVELS[hero.lv][5]) {
+    const before = known().length, hpBefore = maxHp();
+    hero.lv++; hero.hp += maxHp() - hpBefore; hero.mp = Math.min(maxMp(), hero.mp + 4);
+    const learned = known().length > before ? ` Learned ${known().at(-1).name}.` : "";
+    battle.msg = `${hero.name} is now LV ${hero.lv}!${learned}`;
+    popups.push({ x: heroCentre().x, y: 80, text: "LEVEL UP", color: C.gold, life: 1.4, big: true });
+    burst(heroCentre().x, heroCentre().y, [C.gold, "#ffffff"], 20);
+    yield 1.4;
+  }
+  if (battle.wardenSite) {
+    battle.outcome = "beacon";
+  } else battle.outcome = "won";
+}
+function* defeat() {
+  battle.msg = `${hero.name} falls...`;
+  flash = 0.3; shakeIt(4, 0.4);
+  yield 1.4;
+  battle.outcome = "lost";
+}
+function endBattle() {
+  const out = battle.outcome, site = battle.wardenSite;
+  battle = null; mode = "walk";
+  if (out === "lost") {
+    const lost = Math.floor(hero.gold / 2); hero.gold -= lost;
+    if (world.kind === "over") placeHero(OVER.sites[hero.home]); else { resetDungeon(); placeHero(DUNGEON.sites["<"]); }
+    hero.hp = maxHp(); hero.mp = maxMp();
+    say(`The shrine keeper tends your wounds. Half your gold (${lost} G) is gone.`, 3);
+    route = []; path = [];
+  }
+  if (out === "beacon" && site) {
+    lit[site.n] = true; litOverride = null; syncLitSeg();
+    banner = { title: `THE ${REGION_NAMES[site.n].toUpperCase()} BEACON BURNS`, t: 3 };
+    const b = OVER.sites[String(site.n + 1)];
+    burstAt(b.x * T + 8, b.y * T + 2, [C.gold, "#ff7a3d", "#ffffff"], 30, false);
+    flash = 0.25; shakeIt(2, 0.3);
+    say(litCount() === 4 ? "All four beacons burn. The Gloam wall crumbles to ash!" : "Colour floods back into the land.", 2.6);
+  }
+}
+
+// Demo pilot for battles: heal when low, Spark the tough ones, otherwise fight the weakest.
+function battlePilot() {
+  const foes = living();
+  if (!foes.length) return null;
+  const mend = SPELLS[0], spark = SPELLS[1];
+  if (hero.hp < maxHp() * 0.4 && hero.lv >= 3 && hero.mp >= mend.mp) return { type: "spell", spell: mend };
+  if (hero.hp < maxHp() * 0.3 && hero.herbs > 0) return { type: "herb" };
+  const target = foes.slice().sort((a, b) => a.hpNow - b.hpNow)[0];
+  if (target.def > heroAtk() * 0.7 && hero.mp >= spark.mp + mend.mp) return { type: "spell", spell: spark, target };
+  return { type: "fight", target };
+}
+
+// ---- Effects ----
+function shakeIt(mag, t) { if (reduceMotion) return; if (mag >= shakeMag || shake <= 0) { shakeMag = mag; shake = t; } }
+function burst(x, y, colors, n) {
+  if (reduceMotion) n = Math.ceil(n / 3);
+  for (let i = 0; i < n; i++) { const a = rand() * Math.PI * 2, s = 30 + rand() * 70; sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 20, life: 0.4 + rand() * 0.3, color: colors[i % colors.length], world: false }); }
+}
+function burstAt(x, y, colors, n, soft) {
+  for (let i = 0; i < n; i++) { const a = rand() * Math.PI * 2, s = (soft ? 10 : 30) + rand() * (soft ? 30 : 60); sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 25, life: 0.5 + rand() * 0.5, color: colors[i % colors.length], world: true }); }
+}
+function sparkle(x, y, color) { sparks.push({ x: x + (rand() - 0.5) * 20, y: y + (rand() - 0.5) * 20, vx: 0, vy: -20 - rand() * 20, life: 0.5, color, world: false }); }
+
+// ---- Update ----
+function update(dt, now) {
+  clock += dt;
+  readPad(now);
+  if (pressed.has("mute")) muted = !muted;
+  if (mode === "swirl") {
+    swirl.t += dt;
+    if (swirl.t >= swirl.dur) { mode = "battle"; swirl = null; }
+  } else if (mode === "battle") updateBattle(dt);
+  else updateWalk(dt);
+  for (const s of sparks) { s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 90 * dt; s.life -= dt; }
+  sparks = sparks.filter((s) => s.life > 0);
+  for (const p of popups) { p.y -= 16 * dt; p.life -= dt; }
+  popups = popups.filter((p) => p.life > 0);
+  if (msg) { msg.t -= dt; if (msg.t <= 0) msg = null; }
+  if (banner) { banner.t -= dt; if (banner.t <= 0) banner = null; }
+  shake = Math.max(0, shake - dt); flash = Math.max(0, flash - dt);
+  for (const f of fog) { f.x += f.v * dt; if (f.x > W + 60) f.x = -60; f.a += dt; }
+  pressed.clear();
+}
+function updateWalk(dt) {
+  if (pressed.has("menu") || (overlay && pressed.has("b"))) { overlay = overlay ? null : "menu"; return; }
+  if (overlay) { if (demo() && rand() < dt / 2) overlay = null; return; }
+  if (hero.moving) {
+    hero.moving.t += dt / 0.17;
+    const m = hero.moving, k = Math.min(1, m.t);
+    hero.px = (m.fx + (hero.x - m.fx) * k) * T; hero.py = (m.fy + (hero.y - m.fy) * k) * T;
+    if (m.t >= 1) { hero.moving = null; hero.px = hero.x * T; hero.py = hero.y * T; arrive(); }
+  } else if (pauseT > 0) {
+    pauseT -= dt;
+    if (pauseT <= 0 && pendingWarden) { const s = pendingWarden; pendingWarden = null; startFight(s.region, [s.warden], s); }
+  } else {
+    if (pressed.has("a")) { search(); }
+    const dir = heldDir();
+    if (dir) { path = []; tryStep(dir); }
+    else if (demo()) {
+      if (!path.length) { const tgt = nextDemoTarget(); if (tgt) path = bfs(tgt.x, tgt.y); }
+      if (path.length) {
+        const [nx, ny] = path[0];
+        const d = nx > hero.x ? "right" : nx < hero.x ? "left" : ny > hero.y ? "down" : "up";
+        if (tryStep(d)) path.shift(); else path = [];
+      }
+    }
+  }
+  // Camera: centre the hero, clamp to the map.
+  const mw = world.w * T, mh = world.h * T;
+  camX = Math.round(clamp(hero.px + 8 - W / 2, 0, Math.max(0, mw - W)));
+  camY = Math.round(clamp(hero.py + 8 - H / 2 - 4, -4, Math.max(0, mh - H)));
+}
+function search() {
+  for (const [dx, dy] of Object.values(DIRS)) {
+    const t = tile(hero.x + dx, hero.y + dy);
+    if (world.kind === "dungeon" && t === "c") { openChest(hero.x + dx, hero.y + dy); return; }
+    if (SITES[t]) { say(SITES[t].text || `${SITES[t].name}. Step inside to enter.`, 2); return; }
+  }
+  say("You search the ground. Nothing but pebbles.", 1.5);
+}
+function updateBattle(dt) {
+  const b = battle;
+  for (const f of b.foes) {
+    f.flash = Math.max(0, f.flash - dt); f.hit = Math.max(0, f.hit - dt);
+    if (f.dying > 0) { f.dying += dt; if (f.dying > (f.warden ? 1.4 : 0.8)) { f.gone = true; } }
+    if (f.charged) f.glow = (f.glow + dt * 4) % 2;
+  }
+  b.heroHit = Math.max(0, b.heroHit - dt);
+  // Valor ring: press A as it closes.
+  if (b.ring) {
+    b.ring.t += dt;
+    const left = b.ring.dur - b.ring.t;
+    const auto = demo() && b.ring.hit === null && left < 0.06 && left > -0.02 ? rand() < 0.6 : null;
+    if (b.ring.hit === null) {
+      if (pressed.has("a")) b.ring.hit = Math.abs(left) <= 0.11;
+      else if (auto !== null) b.ring.hit = auto;
+      else if (demo() && left < -0.02) b.ring.hit = false;
+    }
+  }
+  if (b.co) {
+    b.wait -= dt;
+    while (b.co && b.wait <= 0) {
+      const r = b.co.next();
+      if (r.done) { b.co = null; if (b.menu !== "cmd" && !b.outcome) b.menu = "cmd"; break; }
+      b.wait += r.value;
+    }
+    if (!b.co && b.outcome) { fadeOut = 0.4; }
+    return;
+  }
+  if (fadeOut > 0) { fadeOut -= dt; if (fadeOut <= 0) endBattle(); return; }
+  if (b.outcome) { fadeOut = 0.4; return; }
+  if (!b.menu) b.menu = "cmd";
+  // Player menu input.
+  menuInput();
+  if (demo() && !b.co) {
+    b.think -= dt;
+    if (b.think <= 0) { const act = battlePilot(); if (act) commit(act); }
+  }
+}
+let fadeOut = 0;
+function commit(action) {
+  battle.co = roundScript(action); battle.wait = 0; battle.menu = null;
+}
+function menuOptions() {
+  const b = battle;
+  if (b.menu === "spell") return known().map((s) => ({ label: `${s.name} ${s.mp}`, ok: s.battle && hero.mp >= s.mp, spell: s }));
+  if (b.menu === "item") return [{ label: `HERB x${hero.herbs}`, ok: hero.herbs > 0 }];
+  return cmdList().map((c) => ({ label: c, ok: c !== "ITEM" || hero.herbs > 0 }));
+}
+function needsTarget(a) { return (a.type === "fight" || (a.type === "spell" && !a.spell.self && !a.spell.group)) && living().length > 1; }
+let pendingAction = null;
+function choose(i) {
+  const b = battle, opts = menuOptions();
+  if (b.menu === "target") {
+    const t = living()[i]; if (!t) return;
+    pendingAction.target = t; const a = pendingAction; pendingAction = null; commit(a); return;
+  }
+  const o = opts[i]; if (!o || !o.ok) return;
+  let a = null;
+  if (b.menu === "cmd") {
+    if (o.label === "FIGHT") a = { type: "fight" };
+    else if (o.label === "SPELL") { b.menu = "spell"; b.idx = 0; return; }
+    else if (o.label === "ITEM") { b.menu = "item"; b.idx = 0; return; }
+    else a = { type: "flee" };
+  } else if (b.menu === "spell") a = { type: "spell", spell: o.spell };
+  else if (b.menu === "item") a = { type: "herb" };
+  if (!a) return;
+  if (needsTarget(a)) { pendingAction = a; b.menu = "target"; b.idx = 0; return; }
+  if (!a.target && (a.type === "fight" || a.type === "spell")) a.target = living()[0];
+  commit(a);
+}
+function menuInput() {
+  const b = battle;
+  const n = b.menu === "target" ? living().length : menuOptions().length;
+  const cols = b.menu === "cmd" ? 2 : b.menu === "target" ? n : 1;
+  if (pressed.has("left")) b.idx = (b.idx - 1 + n) % n;
+  if (pressed.has("right")) b.idx = (b.idx + 1) % n;
+  if (pressed.has("up")) b.idx = (b.idx - cols + n) % n;
+  if (pressed.has("down")) b.idx = (b.idx + cols) % n;
+  if (pressed.has("a")) choose(b.idx);
+  if (pressed.has("b") && b.menu !== "cmd") { b.menu = "cmd"; b.idx = 0; pendingAction = null; }
+}
+// Command window rows, for taps.
+const CMD = { x: 136, y: 176, w: 144, h: 40 };
+function optionRects() {
+  const b = battle, opts = b.menu === "target" ? [] : menuOptions();
+  if (b.menu === "cmd") return opts.map((o, i) => ({ x: CMD.x + 8 + (i % 2) * 68, y: CMD.y + 6 + Math.floor(i / 2) * 15, w: 62, h: 13 }));
+  const top = Math.max(0, b.idx - 2);
+  return opts.map((o, i) => ({ x: CMD.x + 8, y: CMD.y + 4 + (i - top) * 11, w: CMD.w - 16, h: 10, hidden: i < top || i > top + 2 }));
+}
+function tapAt(p) {
+  if (mode !== "battle" || !battle || battle.co) return;
+  lastInput = performance.now();
+  if (battle.menu === "target" || battle.menu === "cmd") {
+    const foes = living();
+    for (let i = 0; i < foes.length; i++) {
+      const c = foeCentre(foes[i]), s = (foes[i].scale || 2) * 8;
+      if (Math.abs(p.x - c.x) < s + 4 && Math.abs(p.y - c.y) < s + 4) {
+        if (battle.menu === "cmd") { pendingAction = { type: "fight" }; battle.menu = "target"; }
+        choose(i); return;
+      }
+    }
+  }
+  optionRects().forEach((r, i) => { if (!r.hidden && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h) { battle.idx = i; choose(i); } });
+}
+
+// ---- Draw ----
+function spriteImg(slot, tint, white) {
+  const id = picks[slot];
+  if (white) return whites[id];
+  if (tint) return tinted(id, tint);
+  const img = images[id];
+  return img && img.complete && img.naturalWidth ? img : null;
+}
+function drawSprite(slot, x, y, { scale = 1, faceLeft = false, alpha = 1, white = false, tint = null } = {}) {
+  const img = spriteImg(slot, tint, white); if (!img) return;
+  const flip = Boolean(mirror[slot]) !== faceLeft, s = 16 * scale;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(Math.round(x), Math.round(y));
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(img, -s / 2, -s / 2, s, s);
+  ctx.restore();
+}
+function text(str, x, y, color = C.ink, align = "left", shadow = true) {
+  ctx.font = "8px Silkscreen, monospace"; ctx.textAlign = align; ctx.textBaseline = "top";
+  if (shadow) { ctx.fillStyle = "#000000"; ctx.fillText(str, x + 1, y + 1); }
+  ctx.fillStyle = color; ctx.fillText(str, x, y);
+}
+function wrapText(str, maxW) {
+  ctx.font = "8px Silkscreen, monospace";
+  const words = str.split(" "), lines = []; let cur = "";
+  for (const w of words) { const t = cur ? cur + " " + w : w; if (ctx.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; } else cur = t; }
+  if (cur) lines.push(cur);
+  return lines;
+}
+function panel(x, y, w, h, alpha = 0.92) {
+  ctx.globalAlpha = alpha; ctx.fillStyle = C.panel; ctx.fillRect(x + 1, y + 1, w - 2, h - 2); ctx.globalAlpha = 1;
+  ctx.fillStyle = C.trim; ctx.fillRect(x + 2, y, w - 4, 1); ctx.fillRect(x + 2, y + h - 1, w - 4, 1); ctx.fillRect(x, y + 2, 1, h - 4); ctx.fillRect(x + w - 1, y + 2, 1, h - 4);
+  ctx.fillRect(x + 1, y + 1, 1, 1); ctx.fillRect(x + w - 2, y + 1, 1, 1); ctx.fillRect(x + 1, y + h - 2, 1, 1); ctx.fillRect(x + w - 2, y + h - 2, 1, 1);
+  ctx.fillStyle = C.trim2; ctx.fillRect(x + 2, y + 2, w - 4, 1); ctx.fillRect(x + 2, y + h - 3, w - 4, 1);
+}
+function flame(x, y, s = 1, on = true) {
+  if (!on) { ctx.fillStyle = "#5b5670"; ctx.fillRect(x - 1, y + 2 * s, 3, 2 * s); ctx.fillStyle = "#3c3850"; ctx.fillRect(x, y, 1, 2 * s); return; }
+  const fl = Math.floor(clock * 10 + x) % 3;
+  ctx.fillStyle = "#ff7a3d"; ctx.fillRect(x - 2, y + 1, 5, 4 * s);
+  ctx.fillStyle = C.gold; ctx.fillRect(x - 1, y - fl % 2, 3, 4 * s);
+  ctx.fillStyle = "#fff4c0"; ctx.fillRect(x, y + 2, 1, 2 * s);
+}
+const blink = (hz) => Math.floor(clock * hz) % 2 === 0;
+
+function drawMap(ox, oy) {
+  ctx.save(); ctx.translate(ox, oy);
+  ctx.fillStyle = world.kind === "over" ? PAL.rock2 : "#000000"; ctx.fillRect(-8, -8, W + 16, H + 16);
+  ctx.drawImage(baked(), -camX, -camY);
+  const tx0 = Math.floor(camX / T), ty0 = Math.floor(camY / T);
+  if (world.kind === "over") {
+    // Water shimmer, beacon fires, gloam smoke.
+    for (let y = ty0; y <= ty0 + 15; y++) for (let x = tx0; x <= tx0 + 27; x++) {
+      const t = tile(x, y), sx = x * T - camX, sy = y * T - camY;
+      if (t === "~" && !reduceMotion && ((x * 7 + y * 3 + Math.floor(clock * 2)) % 9 === 0)) { ctx.fillStyle = "#8fbdf0"; ctx.fillRect(sx + 4, sy + 6, 4, 1); }
+      if ("1234".includes(t)) {
+        const on = lit[Number(t) - 1];
+        if (on) { ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = "rgba(243,184,74,0.18)"; ctx.beginPath(); ctx.arc(sx + 8, sy + 2, 14 + Math.sin(clock * 6) * 1.5, 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = "source-over"; }
+        flame(sx + 8, sy - 2, 1, on);
+      }
+      if (t === "G" && litCount() < 4 && blink(2)) { ctx.fillStyle = C.gloam; ctx.fillRect(sx + 7, sy + 8, 2, 2); }
+    }
+  } else {
+    // Chests and the cold brazier as sprites.
+    for (let y = ty0; y <= ty0 + 15; y++) for (let x = tx0; x <= tx0 + 27; x++) {
+      const t = tile(x, y), sx = x * T - camX + 8, sy = y * T - camY + 8;
+      if (t === "c") drawSprite("chest", sx, sy);
+      if (t === "o") drawSprite("chest", sx, sy, { alpha: 0.45 });
+      if (t === "b") drawSprite("beacon", sx, sy - 2);
+    }
+  }
+  // Hero, bobbing as it walks.
+  const bob = hero.moving ? (Math.floor(hero.moving.t * 2) % 2) : 0;
+  drawSprite("player", hero.px - camX + 8, hero.py - camY + 8 - bob, { faceLeft: hero.face < 0 });
+  for (const s of sparks) if (s.world) { ctx.fillStyle = s.color; ctx.fillRect(Math.round(s.x - camX), Math.round(s.y - camY), 2, 2); }
+  if (world.kind === "over" && !reduceMotion) {
+    // Gloam fog drifts over regions that are still dark.
+    for (const f of fog) {
+      const wx = Math.floor((f.x + camX) / T), wy = Math.floor((f.y + camY) / T);
+      const reg = OVER.region[clamp(wy, 0, OVER.h - 1)]?.[clamp(wx, 0, OVER.w - 1)];
+      if (reg === undefined || (reg >= 0 && lit[reg]) || (reg === -1 && litCount() === 4)) continue;
+      ctx.fillStyle = `rgba(157,123,224,${0.06 + 0.03 * Math.sin(f.a)})`;
+      ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * 1.6, f.r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  if (world.kind === "dungeon") drawDark();
+  ctx.restore();
+}
+function drawDark() {
+  // Torch light: about two tiles round the hero, stepped off in tile-sized bands.
+  const hx = hero.px + 8 - camX, hy = hero.py + 8 - camY, r = 2.2 * T + Math.sin(clock * 9) * 0.6;
+  const tx0 = Math.floor(camX / T), ty0 = Math.floor(camY / T);
+  for (let y = ty0; y <= ty0 + 15; y++) for (let x = tx0; x <= tx0 + 27; x++) {
+    const sx = x * T - camX, sy = y * T - camY, d = Math.hypot(sx + 8 - hx, sy + 8 - hy);
+    const a = d < r ? 0 : d < r + T ? 0.65 : d < r + T * 1.6 ? 0.88 : 1;
+    if (a) { ctx.fillStyle = `rgba(4,3,8,${a})`; ctx.fillRect(sx, sy, T, T); }
+  }
+}
+function drawBattle(ox, oy) {
+  const b = battle;
+  ctx.save(); ctx.translate(ox, oy);
+  ctx.drawImage(backdrop(b.ground, b.dim), 0, 0);
+  ctx.fillStyle = "#0b0e1e"; ctx.fillRect(0, 150, W, H - 150);
+  ctx.fillStyle = C.trim2; ctx.fillRect(0, 150, W, 1);
+  // Shadows, foes, hero.
+  for (const f of b.foes) {
+    if (f.gone) continue;
+    const s = (f.scale || 2) * 16, footY = f.y + s / 2;
+    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(f.x - s / 3, footY - 2, (s * 2) / 3, 3);
+  }
+  ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.fillRect(heroCentre().x - 10, 126, 20, 3);
+  for (const f of b.foes) {
+    if (f.gone) continue;
+    const dx = -f.lunge * 30, scale = f.scale || 2;
+    let alpha = 1, white = f.flash > 0 && blink(20), yOff = 0;
+    if (f.hit > 0 && blink(24)) white = true;
+    if (f.dying > 0) { const k = f.dying / (f.warden ? 1.4 : 0.8); alpha = 1 - k; yOff = -k * 10; white = k < 0.3; }
+    if (f.glow > 0 && f.glow < 1 && f.charged) { ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = "rgba(255,122,61,0.25)"; ctx.beginPath(); ctx.arc(f.x, f.y, 26, 0, Math.PI * 2); ctx.fill(); ctx.globalCompositeOperation = "source-over"; }
+    drawSprite(f.slot, f.x + dx, f.y + yOff, { scale, faceLeft: true, alpha, white, tint: f.tint });
+    if (f.sleep > 0) text("z", f.x + 10, f.y - 18 - (Math.floor(clock * 3) % 3), C.gloam);
+  }
+  const hc = heroCentre();
+  const hw = b.heroHit > 0 && blink(24);
+  drawSprite("player", hc.x, hc.y, { scale: 2, white: hw });
+  if (b.sleep) text("z", hc.x + 8, hc.y - 20, C.gloam);
+  if (b.bolt) { ctx.fillStyle = "#ff7a3d"; ctx.fillRect(b.bolt.x - 3, b.bolt.y - 3, 6, 6); ctx.fillStyle = "#fff4c0"; ctx.fillRect(b.bolt.x - 1, b.bolt.y - 1, 2, 2); }
+  // Valor ring: closes on the point of impact.
+  if (b.ring) {
+    const k = clamp(1 - b.ring.t / b.ring.dur, 0, 1), rr = 6 + k * 26;
+    ctx.strokeStyle = b.ring.hit === true ? C.gold : b.ring.hit === false ? "rgba(241,233,212,0.3)" : "rgba(241,233,212,0.85)";
+    ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(b.ring.x, b.ring.y, rr, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = "rgba(243,184,74,0.6)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(b.ring.x, b.ring.y, 6, 0, Math.PI * 2); ctx.stroke();
+  }
+  for (const s of sparks) if (!s.world) { ctx.fillStyle = s.color; ctx.fillRect(Math.round(s.x), Math.round(s.y), 2, 2); }
+  for (const p of popups) { const a = Math.min(1, p.life * 2); ctx.globalAlpha = a; text(p.text, p.x, p.y, p.color, "center"); ctx.globalAlpha = 1; }
+  // Target cursor.
+  if (b.menu === "target") {
+    const f = living()[b.idx]; if (f) { const c = foeCentre(f), s = (f.scale || 2) * 8; ctx.fillStyle = C.gold; const yy = c.y - s - 8 + (blink(4) ? 0 : 1); ctx.fillRect(c.x - 3, yy, 7, 2); ctx.fillRect(c.x - 2, yy + 2, 5, 1); ctx.fillRect(c.x - 1, yy + 3, 3, 1); ctx.fillRect(c.x, yy + 4, 1, 1); }
+  }
+  // Message window and command window.
+  panel(92, 153, 232, 22);
+  const lines = wrapText(b.msg, 218);
+  lines.slice(0, 2).forEach((l, i) => text(l, 100, 156 + i * 9, C.ink, "left", false));
+  panel(CMD.x, CMD.y, CMD.w, CMD.h);
+  if (b.menu && b.menu !== "target") {
+    const opts = menuOptions(), rects = optionRects();
+    opts.forEach((o, i) => {
+      const r = rects[i]; if (r.hidden) return;
+      const sel = i === b.idx;
+      if (sel) { ctx.fillStyle = C.gold; ctx.fillRect(r.x - 5, r.y + 2, 3, 4); }
+      text(o.label, r.x, r.y, !o.ok ? "#5d5a78" : sel ? C.gold : C.ink, "left", false);
+    });
+  } else if (b.menu === "target") {
+    text("WHICH FOE?", CMD.x + CMD.w / 2, CMD.y + 10, C.gold, "center", false);
+    text(living()[b.idx]?.name.toUpperCase() || "", CMD.x + CMD.w / 2, CMD.y + 22, C.ink, "center", false);
+  } else {
+    text(b.ring ? (b.ring.who === "hero" ? "PRESS A ON THE RING" : "PRESS A TO GUARD") : "...", CMD.x + CMD.w / 2, CMD.y + 16, b.ring ? C.gold : C.dim, "center", false);
+  }
+  ctx.restore();
+}
+
+function drawHud() {
+  // Status window.
+  panel(3, 3, 200, 16);
+  const low = hero.hp / maxHp() < 0.3;
+  text(hero.name, 9, 7, C.gold, "left", false);
+  text(`LV${hero.lv}`, 42, 7, C.ink, "left", false);
+  text(`HP ${hero.hp}/${maxHp()}`, 70, 7, low && blink(3) ? C.hurt : low ? "#ffb0a8" : C.ink, "left", false);
+  text(`MP ${hero.mp}`, 128, 7, C.ink, "left", false);
+  drawSprite("coin", 166, 11, { scale: 0.5 });
+  text(String(hero.gold), 173, 7, C.ink, "left", false);
+  // Menu chip, beacon pips, sound.
+  panel(300, 3, 34, 16);
+  text("MENU", 317, 7, C.ink, "center", false);
+  panel(338, 3, 56, 16);
+  for (let i = 0; i < 4; i++) flame(347 + i * 12, 7, 1, lit[i]);
+  ctx.fillStyle = muted ? C.dim : C.ink;
+  ctx.fillRect(399, 8, 2, 3); ctx.fillRect(401, 7, 1, 5); ctx.fillRect(402, 6, 1, 7);
+  if (muted) { for (let i = 0; i < 4; i++) { ctx.fillRect(404 + i, 7 + i, 1, 1); ctx.fillRect(407 - i, 7 + i, 1, 1); } }
+  else { ctx.fillRect(404, 8, 1, 3); ctx.fillRect(406, 7, 1, 5); ctx.fillRect(408, 6, 1, 7); }
+  if (mode === "walk") {
+    if (world.kind === "dungeon" && hero.keys) { panel(3, 21, 40, 14); drawSprite("key", 12, 28, { scale: 0.5 }); text(`x${hero.keys}`, 19, 24, C.ink, "left", false); }
+    if (msg) {
+      panel(92, 172, 232, 28);
+      wrapText(msg.text, 218).slice(0, 2).forEach((l, i) => text(l, 100, 177 + i * 10, C.ink, "left", false));
+    }
+    const hint = demo() ? "DEMO  ·  CLICK THE SCREEN TO PLAY"
+      : lastDevice === "pad" ? "D-PAD WALK  ·  A SEARCH  ·  START MENU"
+      : lastDevice === "touch" ? "D-PAD WALK  ·  A SEARCH  ·  MENU CHIP"
+      : "ARROWS WALK  ·  Z SEARCH  ·  ESC MENU  ·  M SOUND";
+    ctx.fillStyle = "rgba(8,10,22,0.55)"; ctx.fillRect(96, 213, 224, 12);
+    text(hint, W / 2, 215, C.dim, "center", false);
+  } else if (mode === "battle") {
+    const hint = demo() ? "DEMO  ·  CLICK THE SCREEN TO PLAY"
+      : lastDevice === "touch" ? "TAP A COMMAND OR A FOE  ·  A ON THE RING"
+      : lastDevice === "pad" ? "D-PAD CHOOSE  ·  A OK  ·  B BACK"
+      : "ARROWS CHOOSE  ·  Z OK  ·  X BACK";
+    text(hint, W / 2, 218, C.dim, "center", false);
+  }
+  if (banner) {
+    const a = Math.min(1, banner.t * 2);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = "rgba(8,10,22,0.7)"; ctx.fillRect(0, 44, W, 22);
+    ctx.fillStyle = C.trim2; ctx.fillRect(0, 44, W, 1); ctx.fillRect(0, 65, W, 1);
+    text(banner.title, W / 2, 51, C.gold, "center");
+    ctx.globalAlpha = 1;
+  }
+  if (overlay === "menu") drawMenu();
+}
+function drawMenu() {
+  panel(112, 26, 192, 150, 0.96);
+  text(`${hero.name}  ·  SQUIRE OF BRIGHTKEEP`, 208, 33, C.gold, "center", false);
+  const L = lvRow(), next = hero.lv < 15 ? LEVELS[hero.lv][5] - hero.xp : 0;
+  const rows = [["LEVEL", hero.lv], ["HP", `${hero.hp}/${maxHp()}`], ["MP", `${hero.mp}/${maxMp()}`], ["ATTACK", heroAtk()], ["DEFENCE", heroDef()], ["VALOR", hero.xp], ["TO NEXT", next], ["GOLD", hero.gold], ["HERBS", hero.herbs]];
+  rows.forEach(([k, v], i) => { text(k, 122, 48 + i * 10, C.dim, "left", false); text(String(v), 196, 48 + i * 10, C.ink, "right", false); });
+  text("SPELLS", 212, 48, C.dim, "left", false);
+  known().forEach((s, i) => text(s.name, 212, 58 + i * 10, C.ink, "left", false));
+  const quest = litCount() === 4 ? "Enter Gloam's Hollow." : `Relight the ${REGION_NAMES[lit.indexOf(false)]} beacon.`;
+  text("QUEST", 122, 144, C.dim, "left", false);
+  wrapText(quest, 170).slice(0, 2).forEach((l, i) => text(l, 122, 154 + i * 9, C.leaf, "left", false));
+}
+function drawSwirl() {
+  // Classic encounter wipe: tiles go dark in a spiral from the edges in.
+  const k = swirl.t / swirl.dur, cols = 26, rows = 15, total = cols * rows, n = Math.floor(k * total);
+  ctx.fillStyle = "#06070f";
+  let x0 = 0, y0 = 0, x1 = cols - 1, y1 = rows - 1, c = 0;
+  while (c < n && x0 <= x1 && y0 <= y1) {
+    for (let x = x0; x <= x1 && c < n; x++, c++) ctx.fillRect(x * 16, y0 * 16, 16, 16);
+    y0++;
+    for (let y = y0; y <= y1 && c < n; y++, c++) ctx.fillRect(x1 * 16, y * 16, 16, 16);
+    x1--;
+    for (let x = x1; x >= x0 && c < n; x--, c++) ctx.fillRect(x * 16, y1 * 16, 16, 16);
+    y1--;
+    for (let y = y1; y >= y0 && c < n; y--, c++) ctx.fillRect(x0 * 16, y * 16, 16, 16);
+    x0++;
+  }
+}
+function drawTouch() {
+  if (!touch.shown) return;
+  const P = TOUCH.pad;
+  ctx.globalAlpha = 0.9;
+  for (const [d, [dx, dy]] of Object.entries(DIRS)) {
+    const on = touch.dir === d;
+    ctx.fillStyle = on ? "rgba(243,184,74,0.6)" : "rgba(241,233,212,0.16)";
+    ctx.fillRect(P.x + dx * 15 - 7, P.y + dy * 15 - 7, 14, 14);
+    ctx.strokeStyle = "rgba(241,233,212,0.4)"; ctx.lineWidth = 1; ctx.strokeRect(P.x + dx * 15 - 6.5, P.y + dy * 15 - 6.5, 13, 13);
+  }
+  ctx.fillStyle = "rgba(241,233,212,0.1)"; ctx.fillRect(P.x - 7, P.y - 7, 14, 14);
+  for (const [key, label] of [["a", "A"], ["b", "B"]]) {
+    const b = TOUCH[key], held = [...touchPointers.values()].some((v) => v.role === key);
+    ctx.fillStyle = held ? "rgba(243,184,74,0.55)" : "rgba(241,233,212,0.14)";
+    ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(241,233,212,0.45)"; ctx.stroke();
+    text(label, b.x + 1, b.y - 4, C.ink, "center", false);
+  }
+  ctx.globalAlpha = 1;
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt, now);
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = C.night; ctx.fillRect(0, 0, W, H);
+  const mag = shake > 0 ? shakeMag * Math.min(1, shake / 0.2) : 0;
+  const ox = Math.round((rand() - 0.5) * 2 * mag), oy = Math.round((rand() - 0.5) * 2 * mag);
+  if (mode === "battle") drawBattle(ox, oy);
+  else { drawMap(ox, oy); if (mode === "swirl") drawSwirl(); }
+  if (fadeOut > 0) { ctx.fillStyle = `rgba(6,7,15,${1 - fadeOut / 0.4})`; ctx.fillRect(0, 0, W, H); }
+  if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(0.5, flash * 3)})`; ctx.fillRect(0, 0, W, H); }
+  if (mode !== "swirl") drawHud();
+  drawTouch();
+  requestAnimationFrame(frame);
+}
+
+function enterOverworld() { view = "over"; world = OVER; mode = "walk"; battle = null; placeHero(OVER.sites[hero.home] || OVER.sites.C); path = []; route = []; }
+function enterDungeon() { view = "dungeon"; world = DUNGEON; mode = "walk"; battle = null; resetDungeon(); placeHero(DUNGEON.sites["<"]); path = []; say("Thornwood Barrow, first floor. Your torch shows little.", 2.4); }
+function syncSeg() {
+  document.getElementById("touch-on").setAttribute("aria-pressed", String(touch.shown));
+  document.getElementById("touch-off").setAttribute("aria-pressed", String(!touch.shown));
+}
+function syncLitSeg() {
+  const n = litCount();
+  document.querySelectorAll("[data-lit]").forEach((x) => x.setAttribute("aria-pressed", String(Number(x.dataset.lit) === n)));
+  document.getElementById("preview-note").textContent = n === 4 ? "Every region in colour, and the Gloam wall is gone: the Hollow is open." : n ? "Lit regions regain their colour; the rest stay grey under drifting fog." : "Under the Gloam the land is grey and fog drifts over it.";
+}
+document.querySelectorAll("[data-touch]").forEach((b) => b.addEventListener("click", () => { touch.shown = b.dataset.touch === "on"; syncSeg(); }));
+document.querySelectorAll("[data-view]").forEach((b, _, all) => b.addEventListener("click", () => {
+  if (b.dataset.view === "dungeon") enterDungeon(); else enterOverworld();
+  all.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+}));
+document.querySelectorAll("[data-lit]").forEach((b) => b.addEventListener("click", () => {
+  const n = Number(b.dataset.lit);
+  lit = [0, 1, 2, 3].map((i) => i < n);
+  if (n === 4 && view === "over" && mode === "walk") path = [];
+  route = []; syncLitSeg();
+}));
+newHero();
+enterOverworld();
+say("Queen Maren: Go, squire. Relight the beacons, and come home.", 3);
+syncSeg(); syncLitSeg();
+requestAnimationFrame(frame);
+</script>
