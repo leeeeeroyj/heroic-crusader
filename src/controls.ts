@@ -49,13 +49,14 @@ export class Controls {
 
   read(): ControlState {
     const k = this.keys, just = Phaser.Input.Keyboard.JustDown;
-    // JustDown is read once per key: it also catches a tap that went down and up between two frames.
-    let confirm = just(k.Z) || just(k.SPACE) || just(k.ENTER);
-    let back = just(k.X) || just(k.BACKSPACE);
-    let menu = just(k.ESC);
-    let mute = just(k.M);
-    let tapped: Dir | null = just(k.UP) || just(k.W) ? 'up' : just(k.DOWN) || just(k.S) ? 'down'
-      : just(k.LEFT) || just(k.A) ? 'left' : just(k.RIGHT) || just(k.D) ? 'right' : null;
+    // JustDown is read once per key every frame (it clears the flag), so no press is left over for the next frame.
+    // It also catches a tap that went down and up between two frames.
+    const j = Object.fromEntries(Object.entries(k).map(([name, key]) => [name, just(key)])) as Record<KeyName, boolean>;
+    let confirm = j.Z || j.SPACE || j.ENTER;
+    let back = j.X || j.BACKSPACE;
+    let menu = j.ESC;
+    let mute = j.M;
+    let tapped: Dir | null = j.UP || j.W ? 'up' : j.DOWN || j.S ? 'down' : j.LEFT || j.A ? 'left' : j.RIGHT || j.D ? 'right' : null;
     let dir: Dir | null = k.UP.isDown || k.W.isDown ? 'up' : k.DOWN.isDown || k.S.isDown ? 'down'
       : k.LEFT.isDown || k.A.isDown ? 'left' : k.RIGHT.isDown || k.D.isDown ? 'right' : null;
     if (confirm || back || menu || mute || dir || tapped) this.device = 'kbm';

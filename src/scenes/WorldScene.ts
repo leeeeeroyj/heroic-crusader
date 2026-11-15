@@ -1,17 +1,18 @@
 import Phaser from 'phaser';
-import { BUMP_EVERY, COLORS, HEIGHT, HUD_STATE, RENDER_SCALE, STEP_TIME, TILE, WIDTH } from '../config';
-import { Controls, type Device } from '../controls';
+import { BUMP_EVERY, COLORS, ENCOUNTER, HEIGHT, RENDER_SCALE, STEP_TIME, TILE, WIDTH, type CreatureId, type Ground } from '../config';
+import { Controls } from '../controls';
 import { SITES } from '../data/maps';
 import { playSound, toggleMute } from '../sfx';
 import { face } from '../sprites';
-import { STATE, maxHp, maxMp, newJourney, type Journey } from '../state';
+import { STATE, maxHp, maxMp, newJourney, wakeAtShrine, type Journey } from '../state';
 import { bakeMap } from '../tiles';
-import { DIRS, buildOverworld, tileAt, walkable, type Dir, type WorldMap } from '../world';
-import type { HudState } from './HudScene';
+import { DIRS, buildOverworld, groundAt, isLit, rng, rollEncounter, tileAt, walkable, type Dir, type WorldMap } from '../world';
+import type { BattleData } from './BattleScene';
+import { publishHud } from './HudScene';
 
 const MAP_KEY = 'overworld';
 
-/** The overworld: grid walking with a following camera. Fights, towns and dungeons hang off this scene later. */
+/** The overworld: grid walking with a following camera, random encounters, and the hand-off to battle. */
 export class WorldScene extends Phaser.Scene {
   map!: WorldMap;
   journey!: Journey;
@@ -21,12 +22,22 @@ export class WorldScene extends Phaser.Scene {
   moving: { fx: number; fy: number; t: number } | null = null;
   facingRight = true;
   steps = 0;
+  /** Walking, the encounter wipe, or paused under a battle. */
+  mode: 'walk' | 'wipe' | 'battle' = 'walk';
+  /** Random numbers for encounters and battles; a dev hook can seed it. */
+  rand: () => number = rng(Date.now());
+  /** Test switch: no random encounters. */
+  calm = false;
   private controls!: Controls;
   private heroImg!: Phaser.GameObjects.Image;
   private mapImg!: Phaser.GameObjects.Image;
   private fires!: Phaser.GameObjects.Graphics;
+  private wipeG!: Phaser.GameObjects.Graphics;
+  private wipeT = 0;
+  private pending: BattleData | null = null;
   private bumpAt = 0;
   private place: { name: string; t: number } | null = null;
+  private message: { text: string; t: number } | null = null;
   private clock = 0;
   private bakedFor = '';
 
@@ -42,17 +53,19 @@ export class WorldScene extends Phaser.Scene {
     const start = this.journey.at ?? this.map.sites[this.journey.hero.home];
     this.pos = { ...start };
     this.moving = null;
-    this.place = null;
+    this.mode = 'walk';
+    this.message = null;
     this.bakedFor = '';
     this.mapImg = this.add.image(0, 0, '__DEFAULT').setOrigin(0).setDepth(0);
     this.rebake();
     this.fires = this.add.graphics().setDepth(1);
     this.heroImg = face(this.add.image(0, 0, 'player'), 'player', true).setDepth(2);
+    this.wipeG = this.add.graphics().setDepth(5);
     this.cameras.main.setZoom(RENDER_SCALE).setBackgroundColor(COLORS.night);
     this.place = { name: SITES[this.journey.hero.home]?.name ?? '', t: 2.5 };
     this.scene.launch('hud');
     this.cameras.main.fadeIn(300);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scene.stop('hud'));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.scene.stop('hud'); this.scene.stop('battle'); });
   }
 
   /** Re-draws the map texture when the lit beacons change. */
@@ -70,6 +83,12 @@ export class WorldScene extends Phaser.Scene {
     this.clock += dt;
     const input = this.controls.read();
     if (input.mute) toggleMute(this);
+    if (this.mode === 'wipe') {
+      this.wipeT += dt;
+      this.drawWipe(this.wipeT / ENCOUNTER.wipe);
+      if (this.wipeT >= ENCOUNTER.wipe) this.openBattle();
+      return;
+    }
     if (input.menu) { this.leave(); return; }
     this.rebake();
 
@@ -78,13 +97,14 @@ export class WorldScene extends Phaser.Scene {
       if (this.moving.t >= 1) { this.moving = null; this.arrive(); }
     }
     // Keep walking while a direction is held: the next step starts the frame the last one ends.
-    if (!this.moving && input.dir) this.step(input.dir);
+    if (!this.moving && this.mode === 'walk' && input.dir) this.step(input.dir);
 
     this.drawHero();
     this.followCamera();
     this.drawFires();
     if (this.place) { this.place.t -= dt; if (this.place.t <= 0) this.place = null; }
-    this.writeHud(input.device);
+    if (this.message) { this.message.t -= dt; if (this.message.t <= 0) this.message = null; }
+    publishHud(this, this.journey, input.device, 'walk', this.place, this.message);
   }
 
   /** Tries one step; faces that way either way. Returns whether the hero moved. */
@@ -103,12 +123,82 @@ export class WorldScene extends Phaser.Scene {
 
   private arrive() {
     this.steps++;
+    this.journey.sinceFight++;
     this.journey.at = { ...this.pos };
     const site = SITES[tileAt(this.map, this.pos.x, this.pos.y)];
     if (site) {
       this.place = { name: site.name, t: 2.5 };
-      playSound(this, 'arrive');
+      if (site.kind === 'town') this.rest(site.name);
+      else playSound(this, 'arrive');
+      return;
     }
+    if (this.calm) return;
+    const fight = rollEncounter(this.map, this.pos.x, this.pos.y, this.journey.lit, this.journey.sinceFight, this.rand);
+    if (fight) this.fight(fight.foes, fight.ground);
+  }
+
+  /** Until towns have inns, walking into one is a night's rest. */
+  private rest(name: string) {
+    const h = this.journey.hero;
+    if (h.hp === maxHp(h) && h.mp === maxMp(h)) { playSound(this, 'arrive'); return; }
+    h.hp = maxHp(h);
+    h.mp = maxMp(h);
+    this.message = { text: `You rest in ${name}. HP and MP restored.`, t: 2.5 };
+    playSound(this, 'rest');
+  }
+
+  /** Starts a fight: the wipe closes over the map, then the battle scene opens. */
+  fight(foes: CreatureId[], ground: Ground = groundAt(this.map, this.pos.x, this.pos.y)) {
+    if (this.mode !== 'walk') return;
+    this.moving = null;
+    this.drawHero();
+    this.mode = 'wipe';
+    this.wipeT = 0;
+    this.journey.sinceFight = 0;
+    this.pending = { foes, ground, dim: !isLit(this.map, this.pos.x, this.pos.y, this.journey.lit), rand: this.rand };
+    playSound(this, 'encounter');
+  }
+
+  /** Classic encounter wipe: tiles go dark in a spiral from the edges in. `k` runs 0..1. */
+  private drawWipe(k: number) {
+    const v = this.cameras.main.worldView, g = this.wipeG.clear().fillStyle(0x06070f);
+    const cols = Math.ceil(WIDTH / TILE), rows = Math.ceil(HEIGHT / TILE), n = Math.floor(Math.min(1, k) * cols * rows);
+    let x0 = 0, y0 = 0, x1 = cols - 1, y1 = rows - 1, c = 0;
+    const cell = (x: number, y: number) => { g.fillRect(v.x + x * TILE, v.y + y * TILE, TILE, TILE); c++; };
+    while (c < n && x0 <= x1 && y0 <= y1) {
+      for (let x = x0; x <= x1 && c < n; x++) cell(x, y0);
+      y0++;
+      for (let y = y0; y <= y1 && c < n; y++) cell(x1, y);
+      x1--;
+      for (let x = x1; x >= x0 && c < n; x--) cell(x, y1);
+      y1--;
+      for (let y = y1; y >= y0 && c < n; y--) cell(x0, y);
+      x0++;
+    }
+  }
+
+  private openBattle() {
+    this.mode = 'battle';
+    this.scene.launch('battle', this.pending!);
+    this.scene.bringToTop('hud');
+    this.scene.pause();
+  }
+
+  /** Called by the battle scene as it closes. */
+  endFight(outcome: 'won' | 'fled' | 'lost') {
+    this.mode = 'walk';
+    this.wipeG.clear();
+    this.controls.read(); // drop any key presses made during the fight
+    this.journey.sinceFight = 0;
+    if (outcome === 'lost') {
+      const lost = wakeAtShrine(this.journey), home = this.journey.hero.home;
+      this.pos = { ...this.map.sites[home] };
+      this.journey.at = { ...this.pos };
+      this.message = { text: `The shrine keeper in ${SITES[home].name} tends your wounds. Half your gold (${lost}) is gone.`, t: 4 };
+    }
+    this.drawHero();
+    this.followCamera();
+    this.cameras.main.fadeIn(outcome === 'lost' ? 600 : 250);
   }
 
   litCount() {
@@ -154,15 +244,6 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
-  private writeHud(device: Device) {
-    const h = this.journey.hero;
-    const state: HudState = {
-      name: h.name, lv: h.lv, hp: h.hp, maxHp: maxHp(h), mp: h.mp, maxMp: maxMp(h), gold: h.gold,
-      lit: [...this.journey.lit], device, place: this.place,
-    };
-    this.registry.set(HUD_STATE, state);
-  }
-
   // ---- Dev hooks (reached through the dev-only window handle) ----
 
   /** Puts the hero on a tile or a site key. */
@@ -176,6 +257,11 @@ export class WorldScene extends Phaser.Scene {
   /** Lights the first n beacons (or an explicit list). */
   setLit(n: number | boolean[]) {
     this.journey.lit = Array.isArray(n) ? [...n] : [0, 1, 2, 3].map((i) => i < n);
+  }
+
+  /** Seeds the random numbers for encounters and battles. */
+  seed(n: number) {
+    this.rand = rng(n);
   }
 
   leave() {

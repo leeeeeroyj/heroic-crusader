@@ -29,6 +29,18 @@ export const SOUNDS = {
   start: { wave: 'triangle', freq: 392, steps: [0, 4, 7, 12, 7, 12], sustain: 0.5, decay: 0.2, volume: 0.45 },
   bump: { wave: 'square', freq: 140, slide: -1.5, sustain: 0.03, decay: 0.06, duty: 0.5, volume: 0.16 },
   arrive: { wave: 'triangle', freq: 660, steps: [0, 4, 7], sustain: 0.14, decay: 0.1, volume: 0.35 },
+  encounter: { wave: 'square', freq: 330, steps: [12, 8, 5, 1, -2, -6], sustain: 0.42, decay: 0.12, duty: 0.25, volume: 0.3 },
+  swing: { wave: 'noise', freq: 2400, slide: -3, sustain: 0.05, decay: 0.07, smooth: 0.5, volume: 0.28 },
+  hit: { wave: 'noise', freq: 900, slide: -2, sustain: 0.04, decay: 0.12, smooth: 0.6, volume: 0.45 },
+  valor: { wave: 'square', freq: 784, steps: [0, 7, 12, 19], sustain: 0.12, decay: 0.12, duty: 0.25, volume: 0.32 },
+  guard: { wave: 'triangle', freq: 1320, slide: -0.5, sustain: 0.03, decay: 0.16, volume: 0.35 },
+  hurt: { wave: 'square', freq: 220, slide: -2.5, sustain: 0.06, decay: 0.12, duty: 0.5, volume: 0.3 },
+  freed: { wave: 'triangle', freq: 523, steps: [0, 5, 9, 14], slide: 0.4, sustain: 0.2, decay: 0.16, volume: 0.3 },
+  flee: { wave: 'square', freq: 392, steps: [0, 3, 6, 9, 12], sustain: 0.2, decay: 0.06, duty: 0.125, volume: 0.2 },
+  victory: { wave: 'triangle', freq: 440, steps: [0, 5, 9, 5, 9, 14, 17], sustain: 0.62, decay: 0.3, volume: 0.42 },
+  levelup: { wave: 'square', freq: 523, steps: [0, 2, 4, 7, 9, 12, 16, 19], sustain: 0.6, decay: 0.3, duty: 0.25, volume: 0.3 },
+  fall: { wave: 'triangle', freq: 330, steps: [0, -1, -3, -5, -8, -12], slide: -0.3, sustain: 1.0, decay: 0.4, volume: 0.4 },
+  rest: { wave: 'triangle', freq: 523, steps: [0, 4, 7, 12, 16], sustain: 0.4, decay: 0.3, vibrato: [5, 0.01], volume: 0.32 },
 } satisfies Record<string, Voice>;
 
 export type SoundName = keyof typeof SOUNDS;

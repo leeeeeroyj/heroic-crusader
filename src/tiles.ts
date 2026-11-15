@@ -1,5 +1,5 @@
 // Code-drawn tiles, baked to one canvas per map state. Ported from the concept sheet's mockup.
-import { TILE } from './config';
+import { WIDTH, TILE, type Ground, type Tint } from './config';
 import { isLit, rng, tileAt, type WorldMap } from './world';
 
 export const PAL = {
@@ -93,5 +93,85 @@ export function bakeMap(map: WorldMap, lit: readonly boolean[]): HTMLCanvasEleme
     g.fillStyle = 'rgba(42,26,64,0.32)';
     g.fillRect(x * TILE, y * TILE, TILE, TILE);
   }
+  return c;
+}
+
+// ---- Battle backdrops: sky bands, two ridges and the ground, per battle ground ----
+
+const BACKS: Record<Ground, { sky: [string, string, string]; far: string; near: string; ground: string; fleck: string }> = {
+  meadow: { sky: ['#86c3ec', '#a2d3f0', '#c3e4f2'], far: '#86b56f', near: '#5f9f45', ground: '#4f8a3a', fleck: '#7dbb55' },
+  hills: { sky: ['#8cbfe0', '#a8cfe6', '#c6dfe9'], far: '#6d9a54', near: '#79a64e', ground: '#5a8a3c', fleck: '#8fbd5e' },
+  marsh: { sky: ['#7f9b9a', '#93aba5', '#a9bdb0'], far: '#5b6e4a', near: '#4d5f38', ground: '#3c4d2e', fleck: '#9aac52' },
+  snow: { sky: ['#9fb6d9', '#b8cae5', '#d3def0'], far: '#f2f6fc', near: '#d9e2f1', ground: '#e8eef8', fleck: '#c9d5ea' },
+  ruins: { sky: ['#c9a27a', '#d8b48a', '#e6c89c'], far: '#8a7f6c', near: '#9b8f7a', ground: '#7d725f', fleck: '#b8b2a4' },
+};
+export const BACKDROP_H = 150;
+
+/** A battle backdrop, WIDTH x BACKDROP_H. Under a cold beacon it's drawn grey and violet like the map. */
+export function bakeBackdrop(kind: Ground, dim: boolean): HTMLCanvasElement {
+  const W = WIDTH, P = BACKS[kind], c = document.createElement('canvas');
+  c.width = W; c.height = BACKDROP_H;
+  const g = c.getContext('2d')!, r = rng(kind.length * 31 + 7);
+  P.sky.forEach((col, i) => { g.fillStyle = col; g.fillRect(0, i * 30, W, 31); });
+  g.fillStyle = P.sky[2]; g.fillRect(0, 90, W, 30);
+  const ridge = (col: string, base: number, amp: number, step: number) => {
+    g.fillStyle = col;
+    let h = amp / 2;
+    for (let x = 0; x < W; x += step) { h = Math.min(amp, Math.max(4, h + (r() - 0.5) * amp * 0.6)); g.fillRect(x, base - h, step, BACKDROP_H); }
+  };
+  ridge(P.far, 92, kind === 'snow' ? 46 : 30, 8);
+  ridge(P.near, 112, 18, 6);
+  g.fillStyle = P.ground; g.fillRect(0, 118, W, 32);
+  g.fillStyle = P.fleck; for (let i = 0; i < 70; i++) g.fillRect(Math.floor(r() * W), 120 + Math.floor(r() * 28), 2, 1);
+  if (kind === 'marsh') { g.fillStyle = '#3c5c55'; for (let i = 0; i < 6; i++) g.fillRect(Math.floor(r() * W), 124 + Math.floor(r() * 20), 18 + Math.floor(r() * 20), 3); }
+  if (kind === 'ruins') for (const x of [30, 150, 380]) {
+    const hh = 24 + Math.floor(r() * 30);
+    g.fillStyle = '#c2bcae'; g.fillRect(x, 118 - hh, 10, hh);
+    g.fillStyle = '#7d725f'; g.fillRect(x, 118 - hh, 10, 2);
+  }
+  if (kind === 'meadow' || kind === 'hills') { g.fillStyle = '#ffffff'; for (const [x, y] of [[60, 18], [250, 30], [340, 12]]) { g.fillRect(x, y, 28, 5); g.fillRect(x + 6, y - 3, 14, 3); } }
+  if (dim) {
+    g.globalCompositeOperation = 'saturation'; g.fillStyle = 'rgba(128,128,128,0.7)'; g.fillRect(0, 0, W, BACKDROP_H);
+    g.globalCompositeOperation = 'source-over'; g.fillStyle = 'rgba(42,26,64,0.3)'; g.fillRect(0, 0, W, BACKDROP_H);
+  }
+  return c;
+}
+
+// ---- Kin: recoloured base creatures (hue turn, saturation and lightness), baked once at load ----
+
+function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  let h = 0, s = 0;
+  if (mx !== mn) {
+    const d = mx - mn;
+    s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = (mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) / 6;
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  if (!s) return [l * 255, l * 255, l * 255];
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const f = (t: number) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+}
+
+/** A recoloured copy of a loaded sprite image. */
+export function tintImage(src: CanvasImageSource & { width: number; height: number }, tint: Tint): HTMLCanvasElement {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  const g = c.getContext('2d')!;
+  g.drawImage(src, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height);
+  const clamp = (v: number) => Math.min(1, Math.max(0, v));
+  for (let i = 0; i < d.data.length; i += 4) {
+    if (!d.data[i + 3]) continue;
+    const [h, s, l] = rgbToHsl(d.data[i], d.data[i + 1], d.data[i + 2]);
+    const [r, gg, b] = hslToRgb((h + tint.hue / 360 + 1) % 1, clamp(s * (tint.sat ?? 1)), clamp(l * (tint.light ?? 1)));
+    d.data[i] = r; d.data[i + 1] = gg; d.data[i + 2] = b;
+  }
+  g.putImageData(d, 0, 0);
   return c;
 }

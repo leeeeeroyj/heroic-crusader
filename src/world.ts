@@ -1,4 +1,5 @@
 // Grid rules for maps. Pure: no Phaser, so tests import it straight from the dev server.
+import { ENCOUNTER, POOLS, type CreatureId, type Ground } from './config';
 import { HOLLOW_CORNER, OVERWORLD, SITES, TERRAIN_REGION } from './data/maps';
 
 export interface Point { x: number; y: number }
@@ -89,4 +90,31 @@ export function bfs(map: WorldMap, from: Point, to: Point, litCount: number): Po
   const out: Point[] = [];
   for (let c = goal; c !== key(from.x, from.y); c = prev.get(c)!) out.push({ x: c % map.w, y: Math.floor(c / map.w) });
   return out.reverse();
+}
+
+const TILE_GROUND: Record<string, Ground> = { m: 'marsh', '*': 'snow', r: 'ruins', h: 'hills' };
+
+/**
+ * The battle ground under a tile, which picks the backdrop and the encounter pool. It goes by the ground itself, not
+ * the region: grass, forest and roads are meadow anywhere (some ruins-region grass is three steps from Brightkeep),
+ * so danger rises as the hero steps onto marsh, snow, hills and rubble.
+ */
+export function groundAt(map: WorldMap, x: number, y: number): Ground {
+  return TILE_GROUND[tileAt(map, x, y)] ?? 'meadow';
+}
+
+/** Chance of a fight on this tile per step: none on sites or in the Hollow's corner, a third less where the beacon burns. */
+export function encounterOdds(map: WorldMap, x: number, y: number, lit: readonly boolean[]): number {
+  const odds = ENCOUNTER.odds[tileAt(map, x, y)] ?? 0;
+  const r = map.region[y]?.[x] ?? 0;
+  if (r < 0) return 0;
+  return lit[r] ? odds * ENCOUNTER.litFactor : odds;
+}
+
+/** Rolls for a fight after a step. Never within the grace steps of the last one. */
+export function rollEncounter(map: WorldMap, x: number, y: number, lit: readonly boolean[], sinceFight: number, rand: () => number):
+  { ground: Ground; foes: CreatureId[] } | null {
+  if (sinceFight <= ENCOUNTER.grace || rand() >= encounterOdds(map, x, y, lit)) return null;
+  const ground = groundAt(map, x, y), pool = POOLS[ground];
+  return { ground, foes: pool[Math.floor(rand() * pool.length)] };
 }

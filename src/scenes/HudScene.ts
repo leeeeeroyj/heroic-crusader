@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, FONT, HEIGHT, HUD_SCALE, HUD_STATE, TEXT, WIDTH } from '../config';
 import type { Device } from '../controls';
 import { MUTED, toggleMute } from '../sfx';
+import { maxHp, maxMp, type Journey } from '../state';
 import { fitCamera } from '../view';
 
 export interface HudState {
@@ -14,8 +15,23 @@ export interface HudState {
   gold: number;
   lit: boolean[];
   device: Device;
+  /** Walking the map, or in a fight (the battle scene draws its own message window). */
+  mode: 'walk' | 'battle';
   /** A place name to show briefly, with seconds left. */
   place: { name: string; t: number } | null;
+  /** A line for the message box while walking, with seconds left. */
+  message: { text: string; t: number } | null;
+}
+
+/** Writes the HUD's state to the registry for the HUD scene to draw. */
+export function publishHud(scene: Phaser.Scene, j: Journey, device: Device, mode: HudState['mode'],
+  place: HudState['place'] = null, message: HudState['message'] = null) {
+  const h = j.hero;
+  const state: HudState = {
+    name: h.name, lv: h.lv, hp: h.hp, maxHp: maxHp(h), mp: h.mp, maxMp: maxMp(h), gold: h.gold,
+    lit: [...j.lit], device, mode, place, message,
+  };
+  scene.registry.set(HUD_STATE, state);
 }
 
 // HUD space is the design size × HUD_SCALE (832 × 456): sprites drawn here at native 16 px come out half the size
@@ -25,15 +41,23 @@ const W = WIDTH * S, H = HEIGHT * S;
 const STATUS = { x: 6, y: 6, w: 400, h: 32 };
 const PIPS = { x: 676, y: 6, w: 112, h: 32 };
 const SPEAKER = { x: W - 34, y: 6, w: 30, h: 32 };
-const HINTS: Record<Device, string> = {
-  kbm: 'ARROWS / WASD WALK  ·  ESC TITLE  ·  M SOUND',
-  pad: 'D-PAD / STICK WALK  ·  START TITLE  ·  BACK SOUND',
-  touch: 'TOUCH CONTROLS ARE ON THE WAY: USE A KEYBOARD OR CONTROLLER FOR NOW',
+const MESSAGE = { x: 176, y: 344, w: 480, h: 60 };
+const TOUCH_SOON = 'TOUCH CONTROLS ARE ON THE WAY: USE A KEYBOARD OR CONTROLLER FOR NOW';
+const HINTS: Record<HudState['mode'], Record<Device, string>> = {
+  walk: {
+    kbm: 'ARROWS / WASD WALK  ·  ESC TITLE  ·  M SOUND',
+    pad: 'D-PAD / STICK WALK  ·  START TITLE  ·  BACK SOUND',
+    touch: TOUCH_SOON,
+  },
+  battle: {
+    kbm: 'ARROWS CHOOSE  ·  Z OK  ·  X BACK  ·  Z ON THE RING',
+    pad: 'D-PAD CHOOSE  ·  A OK  ·  B BACK  ·  A ON THE RING',
+    touch: TOUCH_SOON,
+  },
 };
 
-/** Storybook panel: dark fill, a gold outer line with clipped corners, a darker inner line. */
-export function drawPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, alpha = 0.92) {
-  const u = S;
+/** Storybook panel: dark fill, a gold outer line with clipped corners, a darker inner line. `u` is one game pixel. */
+export function drawPanel(g: Phaser.GameObjects.Graphics, x: number, y: number, w: number, h: number, alpha = 0.92, u = S) {
   g.fillStyle(COLORS.panel, alpha).fillRect(x + u, y + u, w - 2 * u, h - 2 * u);
   g.fillStyle(COLORS.trim);
   g.fillRect(x + 2 * u, y, w - 4 * u, u).fillRect(x + 2 * u, y + h - u, w - 4 * u, u);
@@ -51,6 +75,7 @@ export class HudScene extends Phaser.Scene {
   private gold!: Phaser.GameObjects.Text;
   private hint!: Phaser.GameObjects.Text;
   private placeText!: Phaser.GameObjects.Text;
+  private messageText!: Phaser.GameObjects.Text;
   private dynamic!: Phaser.GameObjects.Graphics;
   private clock = 0;
 
@@ -74,6 +99,9 @@ export class HudScene extends Phaser.Scene {
     this.dynamic = this.add.graphics();
     this.hint = label(W / 2, H - 26, '', TEXT.dim).setOrigin(0.5, 0);
     this.placeText = this.add.text(W / 2, 96, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.gold }).setOrigin(0.5);
+    this.messageText = this.add.text(MESSAGE.x + 16, MESSAGE.y + 12, '', {
+      fontFamily: FONT, fontSize: '16px', color: TEXT.ink, lineSpacing: 4, wordWrap: { width: MESSAGE.w - 32 },
+    });
 
     // Phones have no M key: the speaker is a tap target, padded for a thumb.
     this.add.zone(W - 64, 0, 64, 48).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerdown', () => toggleMute(this));
@@ -89,7 +117,7 @@ export class HudScene extends Phaser.Scene {
     this.hp.setText(`HP ${s.hp}/${s.maxHp}`).setColor(low ? TEXT.hurt : TEXT.ink);
     this.mp.setText(`MP ${s.mp}`);
     this.gold.setText(String(s.gold));
-    this.hint.setText(HINTS[s.device]);
+    this.hint.setText(HINTS[s.mode][s.device]);
 
     const g = this.dynamic.clear();
     // A dark band behind the hint strip keeps it readable over snow and meadow.
@@ -105,6 +133,12 @@ export class HudScene extends Phaser.Scene {
       g.fillStyle(COLORS.trim2, a).fillRect(0, 76, W, 2).fillRect(0, 114, W, 2);
       this.placeText.setText(s.place.name.toUpperCase()).setAlpha(a);
     } else this.placeText.setText('');
+    // Message box: below the hero, above the hint strip.
+    if (s.message && s.mode === 'walk') {
+      const a = Math.min(1, s.message.t * 3);
+      drawPanel(g, MESSAGE.x, MESSAGE.y, MESSAGE.w, MESSAGE.h, 0.92 * a);
+      this.messageText.setText(s.message.text).setAlpha(a);
+    } else this.messageText.setText('');
   }
 
   private flame(g: Phaser.GameObjects.Graphics, x: number, y: number, on: boolean, i: number) {

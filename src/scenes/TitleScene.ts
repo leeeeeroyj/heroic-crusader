@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, FONT, HEIGHT, RENDER_SCALE, SPRITES, TEXT, TILE, WIDTH, type SpriteKey } from '../config';
 import { Controls } from '../controls';
 import { playSound, registerSounds, restoreMute, toggleMute } from '../sfx';
-import { face } from '../sprites';
+import { bakeKin, face } from '../sprites';
 import { STATE, newJourney } from '../state';
 import { bakeMap } from '../tiles';
 import { buildOverworld } from '../world';
@@ -34,6 +34,7 @@ export class TitleScene extends Phaser.Scene {
     this.controls = new Controls(this);
     fitCamera(this, RENDER_SCALE);
     registerSounds(this);
+    bakeKin(this);
     restoreMute(this);
     this.cameras.main.fadeIn(300);
 

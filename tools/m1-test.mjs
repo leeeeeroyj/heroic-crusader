@@ -20,6 +20,7 @@ check('every sprite slot loaded', missing.length === 0, missing.join(', '));
 
 await tap('Enter');
 await until(() => evaluate(`${G}.scene.isActive('world') && ${G}.scene.isActive('hud')`));
+await evaluate(`${WS}.calm = true`); // no random fights while this test walks about
 await sleep(900);
 await shot('2-start');
 const home = await evaluate(`${WS}.map.sites.C`);
