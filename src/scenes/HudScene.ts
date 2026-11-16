@@ -13,6 +13,7 @@ export interface HudState {
   mp: number;
   maxMp: number;
   gold: number;
+  poisoned: boolean;
   lit: boolean[];
   device: Device;
   /** Walking the map, or in a fight (the battle scene draws its own message window). */
@@ -28,7 +29,7 @@ export function publishHud(scene: Phaser.Scene, j: Journey, device: Device, mode
   place: HudState['place'] = null, message: HudState['message'] = null) {
   const h = j.hero;
   const state: HudState = {
-    name: h.name, lv: h.lv, hp: h.hp, maxHp: maxHp(h), mp: h.mp, maxMp: maxMp(h), gold: h.gold,
+    name: h.name, lv: h.lv, hp: h.hp, maxHp: maxHp(h), mp: h.mp, maxMp: maxMp(h), gold: h.gold, poisoned: h.poisoned,
     lit: [...j.lit], device, mode, place, message,
   };
   scene.registry.set(HUD_STATE, state);
@@ -45,8 +46,8 @@ const MESSAGE = { x: 176, y: 344, w: 480, h: 60 };
 const TOUCH_SOON = 'TOUCH CONTROLS ARE ON THE WAY: USE A KEYBOARD OR CONTROLLER FOR NOW';
 const HINTS: Record<HudState['mode'], Record<Device, string>> = {
   walk: {
-    kbm: 'ARROWS / WASD WALK  ·  ESC TITLE  ·  M SOUND',
-    pad: 'D-PAD / STICK WALK  ·  START TITLE  ·  BACK SOUND',
+    kbm: 'ARROWS / WASD WALK  ·  ESC MENU  ·  M SOUND',
+    pad: 'D-PAD / STICK WALK  ·  START MENU  ·  BACK SOUND',
     touch: TOUCH_SOON,
   },
   battle: {
@@ -114,7 +115,7 @@ export class HudScene extends Phaser.Scene {
     this.name.setText(s.name);
     this.lv.setText(`LV${s.lv}`);
     const low = s.hp / s.maxHp < 0.3;
-    this.hp.setText(`HP ${s.hp}/${s.maxHp}`).setColor(low ? TEXT.hurt : TEXT.ink);
+    this.hp.setText(`HP ${s.hp}/${s.maxHp}`).setColor(s.poisoned ? TEXT.leaf : low ? TEXT.hurt : TEXT.ink);
     this.mp.setText(`MP ${s.mp}`);
     this.gold.setText(String(s.gold));
     this.hint.setText(HINTS[s.mode][s.device]);

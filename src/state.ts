@@ -1,5 +1,5 @@
 // The journey's state: the hero and the beacons. Pure data, kept in the game registry under STATE.
-import { GEAR, HERO, LEVELS, START_GEAR, type GearId } from './config';
+import { GEAR, HERO, ITEMS, LEVELS, SPELLS, START_GEAR, START_ITEMS, STATUS, type GearId, type ItemId, type SpellId } from './config';
 
 export const STATE = 'journey';
 
@@ -14,6 +14,10 @@ export interface Hero {
   /** Site key of the shrine the hero last saved at; where they wake after a fall. */
   home: string;
   gear: { weapon: GearId | null; armour: GearId | null; shield: GearId | null };
+  /** The pack: how many of each item. */
+  items: Partial<Record<ItemId, number>>;
+  /** Poison lasts until cured: a remedy, a rest in town, or the shrine. */
+  poisoned: boolean;
 }
 
 export interface Journey {
@@ -24,6 +28,8 @@ export interface Journey {
   at: { x: number; y: number } | null;
   /** Steps walked since the last fight. */
   sinceFight: number;
+  /** Steps of Ward left: weaker creatures leave the hero alone. */
+  ward: number;
 }
 
 export const levelRow = (lv: number) => LEVELS[Math.max(1, Math.min(LEVELS.length, lv)) - 1];
@@ -35,12 +41,34 @@ export const heroDef = (h: Hero) => levelRow(h.lv)[4] + power(h.gear.armour) + p
 export const heroAgi = (h: Hero) => HERO.agility + h.lv;
 /** Valor still needed for the next level (0 at the top). */
 export const toNext = (h: Hero) => (h.lv < LEVELS.length ? LEVELS[h.lv][5] - h.xp : 0);
+/** Spells learned by this level, in the order they're learned. */
+export const known = (h: Hero) => (Object.keys(SPELLS) as SpellId[]).filter((id) => SPELLS[id].lv <= h.lv);
+export const count = (h: Hero, id: ItemId) => h.items[id] ?? 0;
+/** Adds items up to the pack's limit; returns how many fitted. */
+export function addItem(h: Hero, id: ItemId, n = 1): number {
+  const fit = Math.max(0, Math.min(n, ITEMS[id].max - count(h, id)));
+  h.items[id] = count(h, id) + fit;
+  return fit;
+}
+export function takeItem(h: Hero, id: ItemId): boolean {
+  if (count(h, id) <= 0) return false;
+  h.items[id] = count(h, id) - 1;
+  return true;
+}
+/** Heals up to the maximum; returns the HP actually gained. */
+export function heal(h: Hero, amount: number): number {
+  const got = Math.max(0, Math.min(amount, maxHp(h) - h.hp));
+  h.hp += got;
+  return got;
+}
 
 export function newJourney(): Journey {
-  const hero: Hero = { name: HERO.name, lv: 1, hp: 0, mp: 0, xp: 0, gold: HERO.gold, home: HERO.home, gear: { ...START_GEAR } };
+  const hero: Hero = {
+    name: HERO.name, lv: 1, hp: 0, mp: 0, xp: 0, gold: HERO.gold, home: HERO.home, gear: { ...START_GEAR }, items: { ...START_ITEMS }, poisoned: false,
+  };
   hero.hp = maxHp(hero);
   hero.mp = maxMp(hero);
-  return { hero, lit: [false, false, false, false], at: null, sinceFight: 0 };
+  return { hero, lit: [false, false, false, false], at: null, sinceFight: 0, ward: 0 };
 }
 
 /** After a fall: the shrine keeper tends the hero at their last shrine, for half their gold. Returns the gold lost. */
@@ -49,7 +77,19 @@ export function wakeAtShrine(j: Journey): number {
   h.gold -= lost;
   h.hp = maxHp(h);
   h.mp = maxMp(h);
+  h.poisoned = false;
   j.at = null;
   j.sinceFight = 0;
+  j.ward = 0;
+  return lost;
+}
+
+/** One step on the map: poison bites (never below 1 HP) and Ward wears off. Returns the HP lost. */
+export function stepEffects(j: Journey): number {
+  if (j.ward > 0) j.ward--;
+  const h = j.hero;
+  if (!h.poisoned || h.hp <= 1) return 0;
+  const lost = Math.min(STATUS.poisonStep, h.hp - 1);
+  h.hp -= lost;
   return lost;
 }

@@ -34,9 +34,12 @@ export class Controls {
   private prevButtons = new Set<number>();
   private prevPadDir: Dir | null = null;
   private readonly keys: Record<KeyName, Phaser.Input.Keyboard.Key>;
+  /** Each key's press time as of the last read: a new time means a new press. */
+  private readonly seen = new Map<Phaser.Input.Keyboard.Key, number>();
 
   constructor(private readonly scene: Phaser.Scene) {
     this.keys = scene.input.keyboard!.addKeys('LEFT,RIGHT,UP,DOWN,W,A,S,D,Z,X,SPACE,ENTER,BACKSPACE,ESC,M') as Controls['keys'];
+    for (const key of Object.values(this.keys)) this.seen.set(key, key.timeDown);
     scene.input.mouse?.disableContextMenu();
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.device = p.wasTouch ? 'touch' : 'kbm'; });
   }
@@ -48,10 +51,15 @@ export class Controls {
   }
 
   read(): ControlState {
-    const k = this.keys, just = Phaser.Input.Keyboard.JustDown;
-    // JustDown is read once per key every frame (it clears the flag), so no press is left over for the next frame.
-    // It also catches a tap that went down and up between two frames.
-    const j = Object.fromEntries(Object.entries(k).map(([name, key]) => [name, just(key)])) as Record<KeyName, boolean>;
+    const k = this.keys;
+    // A press is a new down time. Phaser's JustDown misses a tap that goes down and up inside one frame (the key-up
+    // clears it), which slow frames make common. A reset (Phaser resets keys when a scene pauses) zeroes the time.
+    const pressed = (key: Phaser.Input.Keyboard.Key) => {
+      const t = key.timeDown, fresh = t > 0 && t !== this.seen.get(key);
+      this.seen.set(key, t);
+      return fresh;
+    };
+    const j = Object.fromEntries(Object.entries(k).map(([name, key]) => [name, pressed(key)])) as Record<KeyName, boolean>;
     let confirm = j.Z || j.SPACE || j.ENTER;
     let back = j.X || j.BACKSPACE;
     let menu = j.ESC;

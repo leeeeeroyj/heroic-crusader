@@ -104,6 +104,8 @@ const BACKS: Record<Ground, { sky: [string, string, string]; far: string; near: 
   marsh: { sky: ['#7f9b9a', '#93aba5', '#a9bdb0'], far: '#5b6e4a', near: '#4d5f38', ground: '#3c4d2e', fleck: '#9aac52' },
   snow: { sky: ['#9fb6d9', '#b8cae5', '#d3def0'], far: '#f2f6fc', near: '#d9e2f1', ground: '#e8eef8', fleck: '#c9d5ea' },
   ruins: { sky: ['#c9a27a', '#d8b48a', '#e6c89c'], far: '#8a7f6c', near: '#9b8f7a', ground: '#7d725f', fleck: '#b8b2a4' },
+  dungeon: { sky: ['#141019', '#1b1622', '#211b2a'], far: '#2b2433', near: '#352c3f', ground: '#2a2230', fleck: '#4a4256' },
+  hollow: { sky: ['#0d0716', '#160c24', '#1f1033'], far: '#2a1a40', near: '#3a2458', ground: '#24163a', fleck: '#9d7be0' },
 };
 export const BACKDROP_H = 150;
 
@@ -128,6 +130,10 @@ export function bakeBackdrop(kind: Ground, dim: boolean): HTMLCanvasElement {
     const hh = 24 + Math.floor(r() * 30);
     g.fillStyle = '#c2bcae'; g.fillRect(x, 118 - hh, 10, hh);
     g.fillStyle = '#7d725f'; g.fillRect(x, 118 - hh, 10, 2);
+  }
+  if (kind === 'dungeon' || kind === 'hollow') {
+    g.fillStyle = '#0c0a10';
+    for (let x = 0; x < W; x += 14) { const hh = 6 + Math.floor(r() * 18); g.fillRect(x, 0, 6, hh); g.fillRect(x + 2, hh, 2, 4); }
   }
   if (kind === 'meadow' || kind === 'hills') { g.fillStyle = '#ffffff'; for (const [x, y] of [[60, 18], [250, 30], [340, 12]]) { g.fillRect(x, y, 28, 5); g.fillRect(x + 6, y - 3, 14, 3); } }
   if (dim) {

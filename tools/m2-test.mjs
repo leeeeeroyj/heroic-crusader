@@ -122,6 +122,8 @@ if (met) {
 // ---- Valor timing, in the game ----
 await evaluate(`${WS}.seed(11); ${WS}.journey.hero.hp = 15; ${WS}.fight(['puffcap'])`);
 await menuOpen();
+// Plain blows only here: spores would take the place of the blow this check guards against.
+await evaluate(`${BS}.battle.foes[0].traits = {}`);
 await press('Enter');
 await pressOnRing(true);
 await until(() => evaluate(`${BS}.log.some((e) => e.type === 'foeHurt')`), 5000);

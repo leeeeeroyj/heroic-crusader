@@ -72,6 +72,8 @@ export const COLORS = {
   ember: 0xff7a3d,
   ashes: 0x5b5670,
   ashes2: 0x3c3850,
+  leaf: 0x8fd07a,
+  gloam: 0x9d7be0,
 } as const;
 export const TEXT = {
   ink: '#f1e9d4',
@@ -87,6 +89,32 @@ export const TEXT = {
 /** A recolour of a base sprite (hue turn in degrees, saturation and lightness multipliers), baked at load. */
 export interface Tint { hue: number; sat?: number; light?: number }
 
+/** What makes a creature more than its numbers. Chances are per turn (or per blow that lands). */
+export interface Traits {
+  /** Half the time it acts before the hero each round. */
+  quick?: boolean;
+  /** Attacks twice a turn. */
+  twice?: boolean;
+  /** Chance, after a blow, to grab 3-8 gold and fly off (no reward for it). */
+  steal?: number;
+  /** Chance to puff spores instead of attacking: half the time they put the hero to sleep, or poison. */
+  spores?: { chance: number; effect: 'sleep' | 'poison' };
+  /** Chance a landed blow poisons. */
+  poison?: number;
+  /** Heals this share of the damage its blows do. */
+  drain?: number;
+  /** Chance to cast Spark at the hero instead of attacking, and its damage range. */
+  spark?: { chance: number; dmg: readonly [number, number] };
+  /** Chance to cast Hush (no spells for the rest of the fight) while the hero can still cast. */
+  hush?: number;
+  /** Braces every other turn: half damage until its next turn. */
+  brace?: boolean;
+  /** Chance to howl for another of its kind when fewer than three foes stand. */
+  howl?: number;
+  /** Chance to dodge the hero's strike. */
+  evade?: number;
+}
+
 export interface CreatureDef {
   name: string;
   slot: SpriteKey;
@@ -98,31 +126,36 @@ export interface CreatureDef {
   /** Valor and gold for freeing it. */
   xp: number;
   gold: number;
+  traits?: Traits;
 }
 
 /**
- * First-pass numbers from the concept sheet; the balance pass tunes them. Traits arrive with the full roster.
+ * First-pass numbers from the concept sheet; the balance pass tunes them.
  * Meadow and hills creatures were softened (2026-11-15) so a LV 1 hero wins about 19 fights in 20 without Valor.
  */
 export const CREATURES = {
-  thornhare: { name: 'Thornhare', slot: 'hare', hp: 5, atk: 7, def: 3, agi: 12, xp: 1, gold: 2 },
-  rook: { name: 'Rook', slot: 'crow', hp: 6, atk: 8, def: 4, agi: 10, xp: 2, gold: 3 },
-  puffcap: { name: 'Puffcap', slot: 'puffcap', hp: 9, atk: 8, def: 6, agi: 3, xp: 3, gold: 4 },
-  duskbat: { name: 'Duskbat', slot: 'bat', hp: 10, atk: 11, def: 6, agi: 14, xp: 4, gold: 5 },
-  bogtoad: { name: 'Bogtoad', slot: 'toad', hp: 24, atk: 22, def: 14, agi: 4, xp: 9, gold: 10 },
-  marshwisp: { name: 'Marshwisp', slot: 'wisp', hp: 16, atk: 18, def: 12, agi: 18, xp: 10, gold: 12 },
-  rotcap: { name: 'Rotcap', slot: 'puffcap', tint: { hue: 95, sat: 0.9, light: 0.9 }, hp: 20, atk: 20, def: 14, agi: 5, xp: 11, gold: 12 },
-  frostfang: { name: 'Frostfang', slot: 'wolf', hp: 30, atk: 32, def: 20, agi: 16, xp: 18, gold: 20 },
-  rimehare: { name: 'Rimehare', slot: 'hare', tint: { hue: 190, sat: 0.6, light: 1.1 }, hp: 22, atk: 30, def: 18, agi: 22, xp: 16, gold: 15 },
-  frostwisp: { name: 'Frostwisp', slot: 'wisp', tint: { hue: 90, sat: 0.6, light: 1.2 }, hp: 26, atk: 26, def: 22, agi: 20, xp: 20, gold: 22 },
+  thornhare: { name: 'Thornhare', slot: 'hare', hp: 5, atk: 7, def: 3, agi: 12, xp: 1, gold: 2, traits: { quick: true } },
+  rook: { name: 'Rook', slot: 'crow', hp: 6, atk: 8, def: 4, agi: 10, xp: 2, gold: 3, traits: { steal: 0.25 } },
+  puffcap: { name: 'Puffcap', slot: 'puffcap', hp: 9, atk: 8, def: 6, agi: 3, xp: 3, gold: 4, traits: { spores: { chance: 0.3, effect: 'sleep' } } },
+  duskbat: { name: 'Duskbat', slot: 'bat', hp: 10, atk: 11, def: 6, agi: 14, xp: 4, gold: 5, traits: { drain: 0.5 } },
+  bogtoad: { name: 'Bogtoad', slot: 'toad', hp: 24, atk: 22, def: 14, agi: 4, xp: 9, gold: 10, traits: { poison: 0.3 } },
+  marshwisp: { name: 'Marshwisp', slot: 'wisp', hp: 16, atk: 18, def: 12, agi: 18, xp: 10, gold: 12, traits: { spark: { chance: 0.35, dmg: [6, 10] }, evade: 0.25 } },
+  rotcap: { name: 'Rotcap', slot: 'puffcap', tint: { hue: 95, sat: 0.9, light: 0.9 }, hp: 20, atk: 20, def: 14, agi: 5, xp: 11, gold: 12, traits: { spores: { chance: 0.3, effect: 'poison' } } },
+  frostfang: { name: 'Frostfang', slot: 'wolf', hp: 30, atk: 32, def: 20, agi: 16, xp: 18, gold: 20, traits: { howl: 0.25 } },
+  rimehare: { name: 'Rimehare', slot: 'hare', tint: { hue: 190, sat: 0.6, light: 1.1 }, hp: 22, atk: 30, def: 18, agi: 22, xp: 16, gold: 15, traits: { twice: true } },
+  frostwisp: { name: 'Frostwisp', slot: 'wisp', tint: { hue: 90, sat: 0.6, light: 1.2 }, hp: 26, atk: 26, def: 22, agi: 20, xp: 20, gold: 22, traits: { hush: 0.3, evade: 0.25 } },
   rustguard: { name: 'Rustguard', slot: 'rustguard', hp: 40, atk: 42, def: 40, agi: 8, xp: 30, gold: 35 },
-  cairn: { name: 'Cairn', slot: 'golem', hp: 60, atk: 46, def: 34, agi: 4, xp: 34, gold: 30 },
-  gloombat: { name: 'Gloombat', slot: 'bat', tint: { hue: 250, sat: 0.9, light: 0.85 }, hp: 30, atk: 40, def: 26, agi: 24, xp: 24, gold: 25 },
+  cairn: { name: 'Cairn', slot: 'golem', hp: 60, atk: 46, def: 34, agi: 4, xp: 34, gold: 30, traits: { brace: true } },
+  gloombat: { name: 'Gloombat', slot: 'bat', tint: { hue: 250, sat: 0.9, light: 0.85 }, hp: 30, atk: 40, def: 26, agi: 24, xp: 24, gold: 25, traits: { drain: 1 } },
+  grimrook: { name: 'Grim Rook', slot: 'crow', tint: { hue: 20, sat: 3, light: 1.6 }, hp: 28, atk: 36, def: 24, agi: 22, xp: 22, gold: 28, traits: { spark: { chance: 0.35, dmg: [12, 18] }, steal: 0.15 } },
+  shadefang: { name: 'Shadefang', slot: 'wolf', tint: { hue: 70, sat: 2.5, light: 0.5 }, hp: 50, atk: 56, def: 34, agi: 26, xp: 45, gold: 40, traits: { howl: 0.25 } },
+  ironguard: { name: 'Ironguard', slot: 'rustguard', tint: { hue: 0, sat: 0.1, light: 1.3 }, hp: 64, atk: 60, def: 60, agi: 10, xp: 55, gold: 60 },
+  obsidian: { name: 'Obsidian Cairn', slot: 'golem', tint: { hue: 250, sat: 1.2, light: 0.6 }, hp: 96, atk: 64, def: 48, agi: 6, xp: 60, gold: 50, traits: { brace: true } },
 } as const satisfies Record<string, CreatureDef>;
 export type CreatureId = keyof typeof CREATURES;
 
-/** Battle grounds: the backdrop and the encounter pool. Meadow hills have their own. */
-export const GROUNDS = ['meadow', 'hills', 'marsh', 'snow', 'ruins'] as const;
+/** Battle grounds: the backdrop and the encounter pool. Hills, dungeons and the Hollow have their own. */
+export const GROUNDS = ['meadow', 'hills', 'marsh', 'snow', 'ruins', 'dungeon', 'hollow'] as const;
 export type Ground = (typeof GROUNDS)[number];
 
 /** What can jump out on each ground: one group is picked at random. */
@@ -130,9 +163,50 @@ export const POOLS: Record<Ground, CreatureId[][]> = {
   meadow: [['thornhare'], ['rook'], ['puffcap'], ['thornhare', 'thornhare'], ['rook', 'thornhare'], ['puffcap', 'rook']],
   hills: [['rook', 'rook'], ['puffcap'], ['duskbat', 'duskbat']],
   marsh: [['bogtoad'], ['marshwisp'], ['rotcap'], ['bogtoad', 'marshwisp'], ['puffcap', 'rotcap']],
-  snow: [['frostfang'], ['rimehare'], ['frostwisp'], ['frostfang', 'rimehare']],
-  ruins: [['rustguard'], ['cairn'], ['gloombat', 'gloombat'], ['rustguard', 'gloombat']],
+  snow: [['frostfang'], ['rimehare'], ['frostwisp'], ['frostfang', 'frostfang'], ['frostfang', 'rimehare']],
+  ruins: [['rustguard'], ['cairn'], ['gloombat', 'gloombat'], ['rustguard', 'gloombat'], ['grimrook', 'grimrook'], ['grimrook', 'rustguard']],
+  dungeon: [['duskbat', 'duskbat', 'duskbat'], ['duskbat', 'duskbat'], ['puffcap', 'duskbat']],
+  hollow: [['shadefang', 'shadefang'], ['ironguard'], ['obsidian'], ['shadefang', 'ironguard'], ['gloombat', 'gloombat', 'gloombat']],
 };
+
+// ---- Spells, items and status ----
+
+export const SPELLS = {
+  mend: { name: 'Mend', lv: 3, mp: 3, use: 'both', heal: [17, 23] },
+  spark: { name: 'Spark', lv: 4, mp: 2, use: 'battle', dmg: [8, 12] },
+  glow: { name: 'Glow', lv: 5, mp: 2, use: 'field' },
+  lull: { name: 'Lull', lv: 7, mp: 2, use: 'battle' },
+  ward: { name: 'Ward', lv: 9, mp: 2, use: 'field' },
+  homeward: { name: 'Homeward', lv: 10, mp: 6, use: 'field' },
+  flare: { name: 'Flare', lv: 12, mp: 5, use: 'battle', dmg: [22, 30] },
+  restore: { name: 'Restore', lv: 14, mp: 8, use: 'both', heal: [75, 90] },
+} as const;
+export type SpellId = keyof typeof SPELLS;
+
+export const ITEMS = {
+  herb: { name: 'Herb', use: 'both', max: 6, price: 10, heal: [22, 28] },
+  remedy: { name: 'Remedy', use: 'both', max: 6, price: 12 },
+  incense: { name: 'Ward Incense', use: 'field', max: 3, price: 30 },
+  torch: { name: 'Torch', use: 'field', max: 6, price: 8 },
+  key: { name: 'Iron Key', use: 'none', max: 6, price: 40 },
+} as const;
+export type ItemId = keyof typeof ITEMS;
+/** A new journey's pack. */
+export const START_ITEMS: Partial<Record<ItemId, number>> = { herb: 2 };
+
+export const STATUS = {
+  /** Lull: chance per foe (wardens resist), and turns asleep. */
+  lullChance: 0.75,
+  lullTurns: [2, 3],
+  /** Poison: HP lost per step on the map (never below 1), and per round in battle as a share of max HP. */
+  poisonStep: 1,
+  poisonRound: 1 / 16,
+  /** Ward (the spell) and Ward Incense: steps of peace from weaker creatures (attack no higher than the hero's defence). */
+  wardSteps: 200,
+  incenseSteps: 120,
+  /** Spores that land put the hero to sleep for this many turns. */
+  sleepTurns: 1,
+} as const;
 
 export const ENCOUNTER = {
   /** Chance of a fight per step, by tile. Roads are safest, marsh and ruins the worst. */

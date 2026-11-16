@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { COLORS, HEIGHT, RENDER_SCALE, WIDTH } from './config';
 import { BattleScene } from './scenes/BattleScene';
 import { HudScene } from './scenes/HudScene';
+import { MenuScene } from './scenes/MenuScene';
 import { TitleScene } from './scenes/TitleScene';
 import { WorldScene } from './scenes/WorldScene';
 
@@ -19,7 +20,7 @@ async function start() {
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     // Two touch pointers: one per thumb.
     input: { gamepad: true, activePointers: 2 },
-    scene: [TitleScene, WorldScene, BattleScene, HudScene],
+    scene: [TitleScene, WorldScene, BattleScene, HudScene, MenuScene],
   });
   // Dev-only handle for poking at the running game from the console or a test script.
   if (import.meta.env.DEV) Object.assign(window, { __heroicCrusader: game });

@@ -106,7 +106,13 @@ await tap('m'); await sleep(150);
 check('M toggles sound', (await evaluate(`${G}.registry.get('muted') === true`)) !== m0);
 await tap('m'); await sleep(150);
 await tap('Escape');
+await until(() => evaluate(`${G}.scene.isActive('menu')`));
+check('Esc opens the field menu', true);
+// Taps can merge or drop when headless frames are slow: tap until the cursor is on BACK TO TITLE.
+const MS = `${G}.scene.getScene('menu')`;
+for (let i = 0; i < 12 && (await evaluate(`${MS}.cursor`)) !== 2; i++) { await tap('ArrowDown', 30); await sleep(150); }
+await tap('Enter', 30);
 await until(() => evaluate(`${G}.scene.isActive('title') && !${G}.scene.isActive('hud')`));
-check('Esc returns to the title', true);
+check('BACK TO TITLE returns to the title', true);
 
 t.done();

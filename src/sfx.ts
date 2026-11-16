@@ -41,6 +41,13 @@ export const SOUNDS = {
   levelup: { wave: 'square', freq: 523, steps: [0, 2, 4, 7, 9, 12, 16, 19], sustain: 0.6, decay: 0.3, duty: 0.25, volume: 0.3 },
   fall: { wave: 'triangle', freq: 330, steps: [0, -1, -3, -5, -8, -12], slide: -0.3, sustain: 1.0, decay: 0.4, volume: 0.4 },
   rest: { wave: 'triangle', freq: 523, steps: [0, 4, 7, 12, 16], sustain: 0.4, decay: 0.3, vibrato: [5, 0.01], volume: 0.32 },
+  cast: { wave: 'triangle', freq: 660, slide: 1.5, sustain: 0.18, decay: 0.12, vibrato: [18, 0.03], volume: 0.28 },
+  bolt: { wave: 'noise', freq: 3000, slide: -1.5, sustain: 0.12, decay: 0.12, smooth: 0.4, volume: 0.3 },
+  heal: { wave: 'sine', freq: 784, steps: [0, 7, 12, 16], sustain: 0.28, decay: 0.2, volume: 0.32 },
+  sleep: { wave: 'sine', freq: 392, steps: [0, -3, -7], slide: -0.4, sustain: 0.4, decay: 0.2, volume: 0.28 },
+  poison: { wave: 'square', freq: 180, steps: [0, 1, 0, 1], sustain: 0.16, decay: 0.08, duty: 0.25, volume: 0.18 },
+  howl: { wave: 'saw', freq: 300, slide: 0.8, sustain: 0.45, decay: 0.25, vibrato: [6, 0.04], smooth: 0.4, volume: 0.25 },
+  open: { wave: 'square', freq: 523, steps: [0, 7], sustain: 0.06, decay: 0.05, duty: 0.25, volume: 0.18 },
 } satisfies Record<string, Voice>;
 
 export type SoundName = keyof typeof SOUNDS;

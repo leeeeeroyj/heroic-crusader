@@ -67,8 +67,8 @@ export class TitleScene extends Phaser.Scene {
       this.add.text(x - 4, 155, keys, { fontFamily: FONT, fontSize: '8px', color: TEXT.ink, align: 'right', lineSpacing: 2 }).setOrigin(1, 0);
       this.add.text(x + 4, 155, actions, { fontFamily: FONT, fontSize: '8px', color: TEXT.dim, lineSpacing: 2 });
     };
-    column(112, 'KEYBOARD', 'ARROWS / WASD\nZ / SPACE / ENTER\nX / BACKSPACE\nESC\nM', 'WALK, CHOOSE\nCONFIRM\nBACK\nTITLE\nSOUND ON/OFF');
-    column(308, 'CONTROLLER', 'D-PAD / STICK\nA\nB\nSTART\nBACK', 'WALK, CHOOSE\nCONFIRM\nBACK\nTITLE\nSOUND ON/OFF');
+    column(112, 'KEYBOARD', 'ARROWS / WASD\nZ / SPACE / ENTER\nX / BACKSPACE\nESC\nM', 'WALK, CHOOSE\nCONFIRM\nBACK\nMENU\nSOUND ON/OFF');
+    column(308, 'CONTROLLER', 'D-PAD / STICK\nA\nB\nSTART\nBACK', 'WALK, CHOOSE\nCONFIRM\nBACK\nMENU\nSOUND ON/OFF');
     this.padStatus = text(cx, 214, '', 8, TEXT.dim);
   }
 

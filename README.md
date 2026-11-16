@@ -26,6 +26,8 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 - **The land shows what's lit.** Every region stays grey and violet under the Gloam until its beacon burns, then its colour comes back.
 - **Side-view fights.** Creatures jump out as you walk, more often on rough ground. Beaten ones aren't killed: they shake off the Gloam and run home.
 - **Valor timing.** A ring closes as each blow lands. Press on it for a strike half again as hard, or to halve a blow aimed at you.
+- **Creatures with tricks.** Rooks snatch your gold, wolves howl for the pack, toads poison, wisps hush your spells, cairns brace behind stone.
+- **Eight spells** learned as you rise, from Mend and Spark to Flare and Homeward.
 - **Hand-drawn map, code-drawn tiles.** Forests, hills, rivers, mountains, roads and battle backdrops are all painted in code.
 - **Keyboard or controller,** with hints that follow the last one you touched.
 
@@ -33,37 +35,55 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 
 - Walk the map a tile at a time. Hold a direction to keep walking.
 - Mountains and rivers block the way; bridges and roads get you across.
-- Step onto a town or a beacon tower to see its name. Stepping into a town is a night's rest: HP and MP refill.
+- Step onto a town or a beacon tower to see its name. Stepping into a town is a night's rest: HP and MP refill and poison is cured.
+- Esc (or Start) opens the menu: your squire's status, spells and items to use on the road, and the way back to the title.
 - The four flames at the top right are the beacons: grey while cold, burning once lit. The wall round Gloam's Hollow, in the far north-east, stays shut until all four burn.
-- The top left shows your squire: name, level, HP, MP and gold.
+- The top left shows your squire: name, level, HP, MP and gold. HP turns green while you're poisoned.
 
 ### Fights
 
 - Creatures jump out at random as you walk, never within five steps of the last fight. Roads and bridges are safest (1 step in 48); sand 1 in 30; grass 1 in 22; forest and snow 1 in 14; hills 1 in 12; marsh and rubble 1 in 10. Where a beacon burns, they come a third less often.
 - What you meet depends on the ground under you: grass, forest and roads anywhere have the meadow's creatures, and marsh, snow, hills and rubble each have their own, tougher ones.
-- **FIGHT** strikes one foe (choose which when there are several). **FLEE** gets you away about two times in three; when it fails, the foes still act. SPELL and ITEM are greyed out: there are no spells or items to use yet.
-- You act first, then each foe, quickest first. A foe much quicker than you may strike before your first turn. Each one flashes white before it acts.
+- **FIGHT** strikes one foe (choose which when there are several). **SPELL** casts a spell you know, if you have the MP. **ITEM** uses something from your pack. **FLEE** gets you away about two times in three; when it fails, the foes still act.
+- You act first, then each foe, quickest first. A foe much quicker than you may strike before your first turn, and a quick one may act before you in any round. Each one flashes white before it acts.
 - **Valor timing:** a ring closes on the target as each blow lands. Press confirm within about a tenth of a second of it closing: your strike does 1.5 times the damage, or a foe's blow does half. Press too early or late and nothing is lost. Once in a while a strike is a heroic blow that goes straight through armour.
 - Beating creatures earns Valor (experience) and gold. Enough Valor raises your level: more HP, MP, attack and defence. LV 2 needs 7 Valor, LV 3 needs 23, LV 4 needs 47.
+- **Sleep** costs you your next turn. **Poison** stings each round and each step on the map (never below 1 HP) until a remedy or a night's rest cures it. **Hush** stops your spells for the rest of the fight. A sleeping foe wakes when it's hurt; a braced one takes half damage.
 - If you fall, you wake at the Brightkeep shrine with full HP and half your gold.
 
-| Creature | Found on | HP | Attack | Defence | Agility | Valor | Gold |
-|---|---|---|---|---|---|---|---|
-| Thornhare | Meadow | 5 | 7 | 3 | 12 | 1 | 2 |
-| Rook | Meadow, Hills | 6 | 8 | 4 | 10 | 2 | 3 |
-| Puffcap | Meadow, Hills, Marsh | 9 | 8 | 6 | 3 | 3 | 4 |
-| Duskbat | Hills | 10 | 11 | 6 | 14 | 4 | 5 |
-| Bogtoad | Marsh | 24 | 22 | 14 | 4 | 9 | 10 |
-| Marshwisp | Marsh | 16 | 18 | 12 | 18 | 10 | 12 |
-| Rotcap | Marsh | 20 | 20 | 14 | 5 | 11 | 12 |
-| Frostfang | Snow | 30 | 32 | 20 | 16 | 18 | 20 |
-| Rimehare | Snow | 22 | 30 | 18 | 22 | 16 | 15 |
-| Frostwisp | Snow | 26 | 26 | 22 | 20 | 20 | 22 |
-| Rustguard | Ruins | 40 | 42 | 40 | 8 | 30 | 35 |
-| Cairn | Ruins | 60 | 46 | 34 | 4 | 34 | 30 |
-| Gloombat | Ruins | 30 | 40 | 26 | 24 | 24 | 25 |
+| Creature | Found on | HP | Attack | Defence | Agility | Valor | Gold | Tricks |
+|---|---|---|---|---|---|---|---|---|
+| Thornhare | Meadow | 5 | 7 | 3 | 12 | 1 | 2 | quick: may strike before you |
+| Rook | Meadow, Hills | 6 | 8 | 4 | 10 | 2 | 3 | snatches gold and flies off |
+| Puffcap | Meadow, Hills, Marsh | 9 | 8 | 6 | 3 | 3 | 4 | spores put you to sleep |
+| Duskbat | Hills | 10 | 11 | 6 | 14 | 4 | 5 | drinks half the HP it takes |
+| Bogtoad | Marsh | 24 | 22 | 14 | 4 | 9 | 10 | bite can poison |
+| Marshwisp | Marsh | 16 | 18 | 12 | 18 | 10 | 12 | casts Spark (6-10); dodges strikes |
+| Rotcap | Marsh | 20 | 20 | 14 | 5 | 11 | 12 | spores poison |
+| Frostfang | Snow | 30 | 32 | 20 | 16 | 18 | 20 | howls for help |
+| Rimehare | Snow | 22 | 30 | 18 | 22 | 16 | 15 | bites twice |
+| Frostwisp | Snow | 26 | 26 | 22 | 20 | 20 | 22 | casts Hush; dodges strikes |
+| Rustguard | Ruins | 40 | 42 | 40 | 8 | 30 | 35 | — |
+| Cairn | Ruins | 60 | 46 | 34 | 4 | 34 | 30 | braces every other turn |
+| Gloombat | Ruins | 30 | 40 | 26 | 24 | 24 | 25 | drinks all the HP it takes |
+| Grim Rook | Ruins | 28 | 36 | 24 | 22 | 22 | 28 | snatches gold and flies off; casts Spark (12-18) |
 
-A blow does (attack − defence ÷ 2) × 0.35 to 0.5. Your squire starts at LV 1 with an Oak Stick (+4 attack) and a Quilted Tunic (+2 defence).
+A blow does (attack − defence ÷ 2) × 0.35 to 0.5. Your squire starts at LV 1 with an Oak Stick (+4 attack), a Quilted Tunic (+2 defence) and two herbs.
+
+### Spells and items
+
+| Spell | Learned at | MP | Where | What it does |
+|---|---|---|---|---|
+| Mend | LV 3 | 3 | Both | Heals 17-23 HP |
+| Spark | LV 4 | 2 | Battle | 8-12 fire damage to one foe |
+| Glow | LV 5 | 2 | Map | Lights dark places |
+| Lull | LV 7 | 2 | Battle | Puts foes to sleep for 2-3 turns (each resists 1 time in 4) |
+| Ward | LV 9 | 2 | Map | Weaker creatures keep away for 200 steps |
+| Homeward | LV 10 | 6 | Map | Takes you back to your home shrine |
+| Flare | LV 12 | 5 | Battle | 22-30 fire damage to every foe |
+| Restore | LV 14 | 8 | Both | Heals 75-90 HP |
+
+A **herb** heals 22-28 HP, in battle or on the road; the pack holds up to six. A **remedy** cures poison. **Incense** keeps weaker creatures away for 120 steps. "Weaker" means too weak to hurt you through your armour.
 
 ## Controls
 
@@ -72,7 +92,7 @@ A blow does (attack − defence ÷ 2) × 0.35 to 0.5. Your squire starts at LV 1
 | Walk, choose | Arrows / WASD | D-pad / left stick |
 | Confirm; strike or guard on the ring | Z / Space / Enter | A |
 | Back | X / Backspace | B |
-| Back to the title | Esc | Start |
+| Menu (status, spells, items, title) | Esc | Start |
 | Sound on/off | M (or click the speaker) | Back |
 
 ## Run it locally
@@ -93,15 +113,16 @@ Every push to `main` builds the game and deploys it to GitHub Pages.
 src/
   main.ts            game setup
   config.ts          tunables: screen, walking, level table, sprites, colours
-  state.ts           the journey: the hero, gear and beacons
+  state.ts           the journey: the hero, gear, pack and beacons
   world.ts           map rules: walking, regions, paths, encounters
   battle.ts          battle rules, played out as a list of events
+  field.ts           spells and items used on the map
   data/maps.ts       the overworld and its sites
   tiles.ts           code-drawn tiles, battle backdrops and recoloured kin
   controls.ts        keyboard and gamepad input
   effects.ts         sparks, shake and flash
   sfx.ts             procedural sound effects
-  scenes/            title screen, the world, battles and the HUD
+  scenes/            title screen, the world, battles, the menu and the HUD
 assets/sprites/      the game's 16 × 16 sprites
 design/              concept sheet and build plan
 tools/sprites.py     sprite search and export script

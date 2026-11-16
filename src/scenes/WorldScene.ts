@@ -1,10 +1,10 @@
 import Phaser from 'phaser';
-import { BUMP_EVERY, COLORS, ENCOUNTER, HEIGHT, RENDER_SCALE, STEP_TIME, TILE, WIDTH, type CreatureId, type Ground } from '../config';
+import { BUMP_EVERY, COLORS, CREATURES, ENCOUNTER, HEIGHT, LEVELS, RENDER_SCALE, STEP_TIME, TILE, WIDTH, type CreatureId, type Ground, type ItemId } from '../config';
 import { Controls } from '../controls';
 import { SITES } from '../data/maps';
 import { playSound, toggleMute } from '../sfx';
 import { face } from '../sprites';
-import { STATE, maxHp, maxMp, newJourney, wakeAtShrine, type Journey } from '../state';
+import { STATE, addItem, heroDef, maxHp, maxMp, newJourney, stepEffects, wakeAtShrine, type Journey } from '../state';
 import { bakeMap } from '../tiles';
 import { DIRS, buildOverworld, groundAt, isLit, rng, rollEncounter, tileAt, walkable, type Dir, type WorldMap } from '../world';
 import type { BattleData } from './BattleScene';
@@ -22,8 +22,8 @@ export class WorldScene extends Phaser.Scene {
   moving: { fx: number; fy: number; t: number } | null = null;
   facingRight = true;
   steps = 0;
-  /** Walking, the encounter wipe, or paused under a battle. */
-  mode: 'walk' | 'wipe' | 'battle' = 'walk';
+  /** Walking, the encounter wipe, or paused under a battle or the field menu. */
+  mode: 'walk' | 'wipe' | 'battle' | 'menu' = 'walk';
   /** Random numbers for encounters and battles; a dev hook can seed it. */
   rand: () => number = rng(Date.now());
   /** Test switch: no random encounters. */
@@ -89,7 +89,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.wipeT >= ENCOUNTER.wipe) this.openBattle();
       return;
     }
-    if (input.menu) { this.leave(); return; }
+    if (input.menu && this.mode === 'walk') { this.openMenu(); return; }
     this.rebake();
 
     if (this.moving) {
@@ -125,6 +125,10 @@ export class WorldScene extends Phaser.Scene {
     this.steps++;
     this.journey.sinceFight++;
     this.journey.at = { ...this.pos };
+    if (stepEffects(this.journey) > 0) {
+      playSound(this, 'poison');
+      this.cameras.main.flash(120, 90, 160, 70);
+    }
     const site = SITES[tileAt(this.map, this.pos.x, this.pos.y)];
     if (site) {
       this.place = { name: site.name, t: 2.5 };
@@ -134,15 +138,19 @@ export class WorldScene extends Phaser.Scene {
     }
     if (this.calm) return;
     const fight = rollEncounter(this.map, this.pos.x, this.pos.y, this.journey.lit, this.journey.sinceFight, this.rand);
-    if (fight) this.fight(fight.foes, fight.ground);
+    if (!fight) return;
+    // Ward and incense: creatures too weak to hurt the hero keep their distance.
+    if (this.journey.ward > 0 && fight.foes.every((id) => CREATURES[id].atk <= heroDef(this.journey.hero))) return;
+    this.fight(fight.foes, fight.ground);
   }
 
-  /** Until towns have inns, walking into one is a night's rest. */
+  /** Until towns have inns, walking into one is a night's rest. It cures poison too. */
   private rest(name: string) {
     const h = this.journey.hero;
-    if (h.hp === maxHp(h) && h.mp === maxMp(h)) { playSound(this, 'arrive'); return; }
+    if (h.hp === maxHp(h) && h.mp === maxMp(h) && !h.poisoned) { playSound(this, 'arrive'); return; }
     h.hp = maxHp(h);
     h.mp = maxMp(h);
+    h.poisoned = false;
     this.message = { text: `You rest in ${name}. HP and MP restored.`, t: 2.5 };
     playSound(this, 'rest');
   }
@@ -188,7 +196,6 @@ export class WorldScene extends Phaser.Scene {
   endFight(outcome: 'won' | 'fled' | 'lost') {
     this.mode = 'walk';
     this.wipeG.clear();
-    this.controls.read(); // drop any key presses made during the fight
     this.journey.sinceFight = 0;
     if (outcome === 'lost') {
       const lost = wakeAtShrine(this.journey), home = this.journey.hero.home;
@@ -199,6 +206,38 @@ export class WorldScene extends Phaser.Scene {
     this.drawHero();
     this.followCamera();
     this.cameras.main.fadeIn(outcome === 'lost' ? 600 : 250);
+  }
+
+  /** Opens the field menu over the paused map. */
+  openMenu() {
+    if (this.mode !== 'walk') return;
+    this.mode = 'menu';
+    this.moving = null;
+    this.message = null;
+    this.place = null;
+    this.drawHero();
+    this.scene.launch('menu', { rand: this.rand });
+    this.scene.bringToTop('menu');
+    this.scene.pause();
+  }
+
+  /** Called by the menu as it closes: back to the title, Homeward, or just walking on with what happened. */
+  closeMenu(then: 'title' | 'home' | null, note: string) {
+    this.mode = 'walk';
+    this.scene.resume();
+    if (then === 'title') { this.leave(); return; }
+    if (then === 'home') {
+      const home = this.journey.hero.home;
+      this.pos = { ...this.map.sites[home] };
+      this.journey.at = { ...this.pos };
+      this.journey.sinceFight = 0;
+      this.place = { name: SITES[home].name, t: 2.5 };
+      this.drawHero();
+      this.followCamera();
+      this.cameras.main.flash(300, 255, 244, 192);
+      return;
+    }
+    if (note) this.message = { text: note, t: 2.5 };
   }
 
   litCount() {
@@ -257,6 +296,20 @@ export class WorldScene extends Phaser.Scene {
   /** Lights the first n beacons (or an explicit list). */
   setLit(n: number | boolean[]) {
     this.journey.lit = Array.isArray(n) ? [...n] : [0, 1, 2, 3].map((i) => i < n);
+  }
+
+  /** Puts items in the pack (up to its limit). */
+  give(id: ItemId, n = 1) {
+    return addItem(this.journey.hero, id, n);
+  }
+
+  /** Sets the hero's level, with Valor, HP and MP to match. */
+  setLevel(lv: number) {
+    const h = this.journey.hero;
+    h.lv = Math.max(1, Math.min(LEVELS.length, lv));
+    h.xp = LEVELS[h.lv - 1][5];
+    h.hp = maxHp(h);
+    h.mp = maxMp(h);
   }
 
   /** Seeds the random numbers for encounters and battles. */
