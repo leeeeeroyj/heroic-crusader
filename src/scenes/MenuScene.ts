@@ -68,7 +68,7 @@ export class MenuScene extends Phaser.Scene {
     publishHud(this, this.journey, input.device, 'walk');
     const rows = this.rowsFor(), n = Math.max(1, rows.length);
     if (input.tapped === 'up' || input.tapped === 'down') { this.cursor = (this.cursor + (input.tapped === 'up' ? n - 1 : 1)) % n; playSound(this, 'select'); }
-    if (input.menu || (input.back && this.page === 'top')) { this.close(); return; }
+    if (input.menu || input.pause || (input.back && this.page === 'top')) { this.close(); return; }
     if (input.back) { this.page = 'top'; this.cursor = 0; playSound(this, 'select'); }
     else if (input.confirm) this.choose(rows[this.cursor]);
     this.draw();

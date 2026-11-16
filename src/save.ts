@@ -1,5 +1,6 @@
 // The one save slot, in localStorage. Every access is guarded: private windows and blocked storage throw, and a
 // save from another version, or one edited by hand, is treated as no save at all.
+import { ATTRACT } from './attract';
 import { GEAR, ITEMS, LEVELS, SAVE, type GearId, type ItemId } from './config';
 import { DUNGEONS, parseFloor } from './data/dungeons';
 import { OVERWORLD, TOWNS, TOWN_H, TOWN_W } from './data/maps';
@@ -77,6 +78,8 @@ export function parseJourney(d: unknown): Journey | null {
 }
 
 export function writeSave(j: Journey): boolean {
+  // Attract mode plays a made-up journey: it must never touch the real save.
+  if (ATTRACT) return false;
   try {
     localStorage.setItem(SAVE.key, JSON.stringify({ v: SAVE.version, journey: j }));
     return true;

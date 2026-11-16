@@ -1,17 +1,19 @@
 import Phaser from 'phaser';
 import { BUMP_EVERY, COLORS, CREATURES, ENCOUNTER, HEIGHT, LEVELS, LIGHT, REGION_NAMES, RENDER_SCALE, STEP_TIME, TILE, WIDTH, type CreatureId, type Ground, type ItemId, type SpriteKey } from '../config';
-import { Controls } from '../controls';
+import { DEMO_SECS } from '../attract';
+import { Controls, type ControlState } from '../controls';
 import { DUNGEONS, floorArea, parseFloor } from '../data/dungeons';
 import { SITES, TOWNS } from '../data/maps';
 import { openChest } from '../field';
 import { PEOPLE, type Person } from '../data/people';
+import { demoFoes, demoGround, demoJourney, demoRoute, dirTo } from '../pilot';
 import { writeSave } from '../save';
 import { playSound, toggleMute } from '../sfx';
 import { face } from '../sprites';
 import { STATE, addItem, count, goHome, heroDef, lightRadius, maxHp, maxMp, newJourney, stepEffects, takeItem, wakeAtShrine, type Journey } from '../state';
 import { bakeMap } from '../tiles';
-import { DIRS, besideStairs, buildDungeon, buildOverworld, buildTown, chestsOn, groundAt, isLit, rng, rollEncounter, tileAt, walkable, type Dir, type WorldMap } from '../world';
-import type { BattleData } from './BattleScene';
+import { DIRS, besideStairs, buildDungeon, buildOverworld, buildTown, chestsOn, groundAt, isLit, rng, rollEncounter, tileAt, walkable, type Dir, type Point, type WorldMap } from '../world';
+import type { BattleData, BattleScene } from './BattleScene';
 import { publishHud } from './HudScene';
 import type { TalkData } from './TalkScene';
 
@@ -56,6 +58,15 @@ export class WorldScene extends Phaser.Scene {
   private message: { text: string; t: number } | null = null;
   private clock = 0;
   private bakedFor = '';
+  /** Attract mode: this demo's seed (the next demo uses the one after); -1 in a real journey. */
+  demoSeed = -1;
+  private demoOver = false;
+  /** When this demo began, by the game loop's clock (it runs on under a fight, unlike this paused scene's). */
+  private demoStart = 0;
+  /** The pilot's walk: the tiles still to step onto. */
+  private pilotPath: Point[] = [];
+  /** Dev: demos started since the page loaded (attract mode). */
+  static demos = 0;
 
   constructor() {
     super('world');
@@ -65,8 +76,18 @@ export class WorldScene extends Phaser.Scene {
     return this.journey.area;
   }
 
-  create() {
-    this.controls = new Controls(this);
+  /** `attract` (a seed) runs a demo: a made-up journey, a short walk and a fight, and then the next demo. */
+  create(data: { attract?: number } = {}) {
+    const demo = data.attract !== undefined;
+    this.demoSeed = demo ? data.attract! : -1;
+    this.demoOver = false;
+    this.demoStart = this.game.loop.time;
+    this.pilotPath = [];
+    if (demo) {
+      WorldScene.demos++;
+      this.rand = rng(this.demoSeed);
+      this.registry.set(STATE, demoJourney(this.demoSeed, buildOverworld().sites));
+    } else this.controls = new Controls(this);
     this.maps.clear();
     if (!this.registry.has(STATE)) this.registry.set(STATE, newJourney());
     this.journey = this.registry.get(STATE) as Journey;
@@ -86,7 +107,39 @@ export class WorldScene extends Phaser.Scene {
     this.enterArea(j.area, j.at ?? buildOverworld().sites[j.hero.home]);
     this.scene.launch('hud');
     this.cameras.main.fadeIn(300);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { for (const s of ['hud', 'battle', 'menu', 'talk']) this.scene.stop(s); });
+    // A phone call, a tab switch or the screen locking: the menu opens over the map, or the fight pauses.
+    const hidden = () => {
+      if (!document.hidden) return;
+      if (this.mode === 'walk') this.openMenu();
+      else if (this.mode === 'battle') (this.scene.get('battle') as BattleScene).setPaused(true);
+    };
+    if (!demo) document.addEventListener('visibilitychange', hidden);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      for (const s of ['hud', 'battle', 'menu', 'talk']) this.scene.stop(s);
+      document.removeEventListener('visibilitychange', hidden);
+    });
+  }
+
+  /** Attract mode: the demo has run its time (checked by the battle scene too, while this one is paused). */
+  demoExpired() {
+    return this.demoSeed >= 0 && this.game.loop.time - this.demoStart > DEMO_SECS * 1000;
+  }
+
+  /** Attract mode: on to the next demo, from the next seed. */
+  nextDemo() {
+    if (this.demoOver) return;
+    this.demoOver = true;
+    this.scene.restart({ attract: (this.demoSeed + 1) % 2 ** 31 });
+  }
+
+  /** Attract mode's walking: along the pilot's route, picking a new one when it runs out. */
+  private pilot(): ControlState {
+    const out: ControlState = { dir: null, tapped: null, confirm: false, back: false, menu: false, mute: false, pause: false, device: 'kbm' };
+    if (this.mode !== 'walk' || this.moving) return out;
+    if (!this.pilotPath.length) this.pilotPath = demoRoute(this.map, this.pos, this.journey.lit, this.rand, demoGround(this.demoSeed));
+    const next = this.pilotPath[0];
+    if (next) out.dir = dirTo(this.pos, next);
+    return out;
   }
 
   private mapFor(area: string): WorldMap {
@@ -162,7 +215,9 @@ export class WorldScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     const dt = Math.min(0.05, delta / 1000);
     this.clock += dt;
-    const input = this.controls.read();
+    const demo = this.demoSeed >= 0;
+    const input = demo ? this.pilot() : this.controls.read();
+    if (this.demoExpired()) { this.nextDemo(); return; }
     if (input.mute) toggleMute(this);
     if (this.mode === 'wipe') {
       this.wipeT += dt;
@@ -170,7 +225,7 @@ export class WorldScene extends Phaser.Scene {
       if (this.wipeT >= ENCOUNTER.wipe) this.openBattle();
       return;
     }
-    if (input.menu && this.mode === 'walk') { this.openMenu(); return; }
+    if ((input.menu || input.pause) && this.mode === 'walk') { this.openMenu(); return; }
     this.rebake();
 
     if (this.moving) {
@@ -214,6 +269,7 @@ export class WorldScene extends Phaser.Scene {
     }
     this.moving = { fx: this.pos.x, fy: this.pos.y, t: 0 };
     this.pos = { x: nx, y: ny };
+    if (this.pilotPath[0]?.x === nx && this.pilotPath[0]?.y === ny) this.pilotPath.shift();
     return true;
   }
 
@@ -233,6 +289,11 @@ export class WorldScene extends Phaser.Scene {
       // Towns and the hermit's hut, or down into a dungeon (a beacon tower, or the Hollow).
       if (site.kind === 'town') this.enterTown(key);
       else this.enterFloor(key, 0, '<');
+      return;
+    }
+    // Attract mode: the fight comes at the end of the pilot's walk.
+    if (this.demoSeed >= 0) {
+      if (!this.pilotPath.length) { const f = demoFoes(this.map, this.pos, this.rand); this.fight(f.foes, f.ground); }
       return;
     }
     if (this.calm) return;
@@ -423,6 +484,8 @@ export class WorldScene extends Phaser.Scene {
 
   /** Called by the battle scene as it closes. */
   endFight(outcome: 'won' | 'fled' | 'lost') {
+    // Attract mode: one fight a demo.
+    if (this.demoSeed >= 0) { this.nextDemo(); return; }
     this.mode = 'walk';
     this.wipeG.clear();
     this.journey.sinceFight = 0;
@@ -566,6 +629,12 @@ export class WorldScene extends Phaser.Scene {
   /** Seeds the random numbers for encounters and battles. */
   seed(n: number) {
     this.rand = rng(n);
+  }
+
+  /** Straight to the title from under a fight (its pause panel), with no fade: this scene is paused. */
+  quit() {
+    this.registry.remove(STATE);
+    this.scene.start('title');
   }
 
   leave() {

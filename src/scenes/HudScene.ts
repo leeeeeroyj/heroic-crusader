@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { ATTRACT } from '../attract';
 import { COLORS, FONT, HEIGHT, HUD_SCALE, HUD_STATE, TEXT, WIDTH } from '../config';
 import type { Device } from '../controls';
 import { MUTED, toggleMute } from '../sfx';
@@ -46,7 +47,7 @@ const MESSAGE = { x: 176, y: 344, w: 480, h: 60 };
 const TOUCH_SOON = 'TOUCH CONTROLS ARE ON THE WAY: USE A KEYBOARD OR CONTROLLER FOR NOW';
 const HINTS: Record<HudState['mode'], Record<Device, string>> = {
   walk: {
-    kbm: 'ARROWS / WASD WALK  ·  Z TALK, OPEN  ·  ESC MENU  ·  M SOUND',
+    kbm: 'ARROWS / WASD WALK  ·  Z TALK, OPEN  ·  ESC / P MENU  ·  M SOUND',
     pad: 'D-PAD / STICK WALK  ·  A TALK, OPEN  ·  START MENU  ·  BACK SOUND',
     touch: TOUCH_SOON,
   },
@@ -56,8 +57,8 @@ const HINTS: Record<HudState['mode'], Record<Device, string>> = {
     touch: TOUCH_SOON,
   },
   battle: {
-    kbm: 'ARROWS CHOOSE  ·  Z OK  ·  X BACK  ·  Z ON THE RING',
-    pad: 'D-PAD CHOOSE  ·  A OK  ·  B BACK  ·  A ON THE RING',
+    kbm: 'ARROWS CHOOSE  ·  Z OK  ·  X BACK  ·  Z ON THE RING  ·  P PAUSE',
+    pad: 'D-PAD CHOOSE  ·  A OK  ·  B BACK  ·  A ON THE RING  ·  START PAUSE',
     touch: TOUCH_SOON,
   },
 };
@@ -110,8 +111,8 @@ export class HudScene extends Phaser.Scene {
       fontFamily: FONT, fontSize: '16px', color: TEXT.ink, lineSpacing: 4, wordWrap: { width: MESSAGE.w - 32 },
     });
 
-    // Phones have no M key: the speaker is a tap target, padded for a thumb.
-    this.add.zone(W - 64, 0, 64, 48).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerdown', () => toggleMute(this));
+    // Phones have no M key: the speaker is a tap target, padded for a thumb. (Attract mode has no sound to toggle.)
+    if (!ATTRACT) this.add.zone(W - 64, 0, 64, 48).setOrigin(0).setInteractive({ useHandCursor: true }).on('pointerdown', () => toggleMute(this));
   }
 
   update(_time: number, delta: number) {
@@ -124,15 +125,16 @@ export class HudScene extends Phaser.Scene {
     this.hp.setText(`HP ${s.hp}/${s.maxHp}`).setColor(s.poisoned ? TEXT.leaf : low ? TEXT.hurt : TEXT.ink);
     this.mp.setText(`MP ${s.mp}`);
     this.gold.setText(String(s.gold));
-    this.hint.setText(HINTS[s.mode][s.device]);
+    // Attract mode: no hints for a player who isn't there.
+    this.hint.setText(ATTRACT ? '' : HINTS[s.mode][s.device]);
 
     const g = this.dynamic.clear();
     // A dark band behind the hint strip keeps it readable over snow and meadow.
     const hw = this.hint.width + 32;
-    g.fillStyle(COLORS.night, 0.6).fillRect(W / 2 - hw / 2, H - 30, hw, 24);
+    if (!ATTRACT) g.fillStyle(COLORS.night, 0.6).fillRect(W / 2 - hw / 2, H - 30, hw, 24);
     // Beacon pips: a flame each, cold until lit.
     s.lit.forEach((on, i) => this.flame(g, PIPS.x + 22 + i * 24, PIPS.y + 10, on, i));
-    this.speaker(g, this.registry.get(MUTED) === true);
+    if (!ATTRACT) this.speaker(g, this.registry.get(MUTED) === true);
     // Place banner: a band behind the name, fading out.
     if (s.place) {
       const a = Math.min(1, s.place.t * 2);

@@ -39,7 +39,9 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 - Walk the map a tile at a time. Hold a direction to keep walking.
 - Mountains and rivers block the way; bridges and roads get you across.
 - Step onto a town to go in; walk out through the gap at the bottom to leave. Step onto a beacon tower to go down into its dungeon.
-- Esc (or Start) opens the menu: your squire's status, spells and items to use on the road, and the way back to the title.
+- Esc or P (or Start) opens the menu: your squire's status, spells and items to use on the road, and the way back to the title. The world waits while it's open, and it opens by itself if you switch away.
+- In a fight, Esc or P (or Start) pauses: RESUME, or TITLE (the journey since your last shrine visit is lost). Switching away pauses too.
+- **Attract mode:** add `?attract` to the address for a silent demo. A squire, ready for one of the four regions, walks out from its town and fights what lives there, then the next demo starts. It ignores input and never touches your save. `?attract&seed=<n>` picks the region and the fights.
 - The four flames at the top right are the beacons: grey while cold, burning once lit. The wall round Gloam's Hollow, in the far north-east, stands until all four burn; then it falls and the Hollow is open.
 - The top left shows your squire: name, level, HP, MP and gold. HP turns green while you're poisoned.
 
@@ -153,7 +155,7 @@ A **herb** (10 gold) heals 22-28 HP, in battle or on the road; the pack holds up
 | Walk, choose | Arrows / WASD | D-pad / left stick |
 | Confirm; talk; open; strike or guard on the ring | Z / Space / Enter | A |
 | Back | X / Backspace | B |
-| Menu (status, spells, items, title) | Esc | Start |
+| Menu (status, spells, items, title); pause a fight | Esc / P | Start |
 | Sound on/off | M (or click the speaker) | Back |
 
 ## Run it locally
@@ -179,6 +181,8 @@ src/
   save.ts            the save slot, checked field by field when it's read
   world.ts           map rules: walking, regions, paths, encounters, dungeon floors
   battle.ts          battle rules, played out as a list of events
+  pilot.ts           the ?attract demo's journey, walk and fights
+  attract.ts         the ?attract demo mode's settings
   field.ts           spells, items and chests on the map
   data/maps.ts       the overworld, its sites and the town maps
   data/people.ts     townsfolk, their lines and their shops
@@ -193,6 +197,8 @@ design/              concept sheet and build plan
 tools/sprites.py     sprite search and export script
 tools/cdp.mjs        headless Chrome harness for the tests
 tools/m*-test.mjs    checks for each milestone
+tools/pause-test.mjs   checks the menu and the fight pause
+tools/attract-test.mjs checks the ?attract demo
 ```
 
 ## Credits

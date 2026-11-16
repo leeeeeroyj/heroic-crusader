@@ -503,23 +503,28 @@ export function runScript(script: BattleScript, answer: (e: BattleEvent) => bool
 }
 
 /**
- * Plays a whole battle with a simple policy, for tests and the balance probe: when low, Restore, Mend or a herb
- * (herbs first while the Gloam is masked, since it copies spells), else strike the weakest foe, Valor on a share of
- * rings. Returns the outcome and the number of rounds.
+ * A simple policy, for tests, the balance probe and the attract-mode demo: when low, Restore, Mend or a herb (herbs
+ * first while the Gloam is masked, since it copies spells), else strike the weakest foe.
+ */
+export function policy(b: Battle, useHeals = true): Action {
+  const h = b.hero, low = h.hp < maxHp(h) * 0.35, mirror = living(b).some((f) => f.gloam && f.masked);
+  const spell = (['restore', 'mend'] as SpellId[]).find((id) => battleSpells(b).includes(id) && canCast(b, id));
+  if (useHeals && low && mirror && canUse(b, 'herb')) return { type: 'item', item: 'herb' };
+  if (useHeals && low && spell) return { type: 'spell', spell };
+  if (useHeals && low && canUse(b, 'herb')) return { type: 'item', item: 'herb' };
+  return { type: 'fight', target: b.foes.indexOf(living(b).sort((a, c) => a.hp - c.hp)[0]) };
+}
+
+/**
+ * Plays a whole battle with `policy` (or fleeing every round), Valor on a share of rings. Returns the outcome and the
+ * number of rounds.
  */
 export function autoplay(b: Battle, { valorRate = 0, flee = false, heal: useHeals = true } = {}) {
   const answer = (e: BattleEvent) => (e.type === 'heroStrike' || e.type === 'foeStrike' ? b.rng() < valorRate : undefined);
   runScript(opening(b), answer);
   let rounds = 0;
   while (!b.outcome && rounds < 200) {
-    const h = b.hero, low = h.hp < maxHp(h) * 0.35, mirror = living(b).some((f) => f.gloam && f.masked);
-    const spell = (['restore', 'mend'] as SpellId[]).find((id) => battleSpells(b).includes(id) && canCast(b, id));
-    let action: Action;
-    if (flee) action = { type: 'flee' };
-    else if (useHeals && low && mirror && canUse(b, 'herb')) action = { type: 'item', item: 'herb' };
-    else if (useHeals && low && spell) action = { type: 'spell', spell };
-    else if (useHeals && low && canUse(b, 'herb')) action = { type: 'item', item: 'herb' };
-    else action = { type: 'fight', target: b.foes.indexOf(living(b).sort((a, c) => a.hp - c.hp)[0]) };
+    const action: Action = flee ? { type: 'flee' } : policy(b, useHeals);
     runScript(round(b, action), answer);
     rounds++;
   }

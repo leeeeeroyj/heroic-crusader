@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { BATTLE, COLORS, CREATURES, FONT, HEIGHT, ITEMS, RENDER_SCALE, SPELLS, TEXT, WIDTH, type CreatureId, type Ground, type ItemId, type SpellId } from '../config';
-import { Controls, type Device } from '../controls';
+import { ATTRACT } from '../attract';
+import { Controls, type ControlState, type Device } from '../controls';
 import { Effects } from '../effects';
 import {
-  battleItems, battleSpells, canCast, canUse, living, newBattle, opening, round, spellTargets,
+  battleItems, battleSpells, canCast, canUse, living, newBattle, opening, policy, round, spellTargets,
   type Action, type Battle, type BattleEvent, type BattleScript, type Who,
 } from '../battle';
 import { playSound, toggleMute } from '../sfx';
@@ -33,7 +34,12 @@ const COMMANDS = ['FIGHT', 'SPELL', 'ITEM', 'FLEE'] as const;
 const LIST_ROWS = 3;
 const SPELL_COLOR: Record<string, number> = { mend: COLORS.leaf, restore: COLORS.leaf, lull: COLORS.gloam, hush: COLORS.gloam, spark: COLORS.ember, flare: COLORS.ember };
 
-interface Ring { x: number; y: number; t: number; dur: number; hit: boolean | null; who: 'hero' | 'foe' }
+interface Ring { x: number; y: number; t: number; dur: number; hit: boolean | null; who: 'hero' | 'foe'; demoPress?: boolean }
+/** The pause panel, in game pixels: RESUME and TITLE side by side. */
+const PAUSE = { w: 252, h: 92, bw: 76, bh: 22 };
+const PAUSE_HINTS: Record<Device, string> = {
+  kbm: 'P OR ESC RESUME  ·  ARROWS + Z CHOOSE', pad: 'START RESUME  ·  D-PAD + A CHOOSE', touch: 'TAP A BUTTON',
+};
 interface Option { label: string; ok: boolean; spell?: SpellId; item?: ItemId }
 
 /** A side-view fight. Plays the battle rules' events back as animation, and asks the player at each ring. */
@@ -70,6 +76,14 @@ export class BattleScene extends Phaser.Scene {
   private device: Device = 'kbm';
   private alive = true;
   private clock = 0;
+  /** Paused: the ring, timers and tweens stop, and a panel offers RESUME and TITLE. */
+  paused = false;
+  /** The pause panel's choice: 0 RESUME, 1 TITLE. */
+  pauseCursor = 0;
+  private pauseMenu!: Phaser.GameObjects.Container;
+  private pauseArt!: Phaser.GameObjects.Graphics;
+  private pauseHint!: Phaser.GameObjects.Text;
+  private pauseZones: Phaser.GameObjects.Zone[] = [];
 
   constructor() {
     super('battle');
@@ -81,7 +95,10 @@ export class BattleScene extends Phaser.Scene {
     this.menu = null;
     this.ring = null;
     this.pending = null;
-    this.controls = new Controls(this);
+    this.paused = false;
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    if (!ATTRACT) this.controls = new Controls(this);
     fitCamera(this, RENDER_SCALE);
     this.journey = this.registry.get(STATE) as Journey;
     this.battle = newBattle(this.journey.hero, data.foes, data.ground, data.dim, data.rand);
@@ -111,6 +128,7 @@ export class BattleScene extends Phaser.Scene {
     this.cmdTexts = COMMANDS.map((c, i) => text(CMD.x + 16, CMD.y + 7 + i * 10, c));
     this.listTexts = Array.from({ length: LIST_ROWS * 2 }, (_, i) => text(MSG.x + 18 + Math.floor(i / LIST_ROWS) * 150, MSG.y + 7 + (i % LIST_ROWS) * 13, ''));
     this.prompt = text(CMD.x + CMD.w / 2, CMD.y + CMD.h / 2, '', TEXT.gold).setOrigin(0.5).setAlign('center');
+    this.buildPause();
 
     this.cameras.main.fadeIn(200);
     void this.run();
@@ -149,10 +167,77 @@ export class BattleScene extends Phaser.Scene {
     }
   }
 
-  /** Waits for the player's command (and target, if there's a choice). */
+  /** Waits for the player's command (and target, if there's a choice). In attract mode the pilot picks, after a beat. */
   private choose(): Promise<Action> {
-    this.openCommands(0);
+    if (ATTRACT) {
+      const a = policy(this.battle);
+      this.openCommands(a.type === 'spell' ? 1 : a.type === 'item' ? 2 : 0);
+      this.time.delayedCall(700, () => this.commit(a));
+    } else this.openCommands(0);
     return new Promise((resolve) => { this.pick = resolve; });
+  }
+
+  /** The pause panel, over the fight. */
+  private buildPause() {
+    const x = WIDTH / 2 - PAUSE.w / 2, y = 48, g = this.add.graphics();
+    g.fillStyle(0x06070f, 0.55).fillRect(0, 0, WIDTH, HEIGHT);
+    drawPanel(g, x, y, PAUSE.w, PAUSE.h, 0.96, 1);
+    const title = this.add.text(WIDTH / 2, y + 10, 'PAUSED', { fontFamily: FONT, fontSize: '16px', color: TEXT.ink }).setOrigin(0.5, 0);
+    this.pauseArt = this.add.graphics();
+    this.pauseZones = [];
+    const parts: Phaser.GameObjects.GameObject[] = [g, title, this.pauseArt];
+    ['RESUME', 'TITLE'].forEach((label, i) => {
+      const bx = WIDTH / 2 + (i ? 6 : -6 - PAUSE.bw), by = y + 38;
+      parts.push(this.add.text(bx + PAUSE.bw / 2, by + PAUSE.bh / 2, label, { fontFamily: FONT, fontSize: '8px', color: TEXT.ink }).setOrigin(0.5).setName(`pause-${i}`));
+      const zone = this.add.zone(bx, by, PAUSE.bw, PAUSE.bh).setOrigin(0).setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => { if (this.paused) this.pauseChoose(i); });
+      this.pauseZones.push(zone);
+      parts.push(zone);
+    });
+    this.pauseHint = this.add.text(WIDTH / 2, y + PAUSE.h - 18, '', { fontFamily: FONT, fontSize: '8px', color: TEXT.dim }).setOrigin(0.5, 0);
+    parts.push(this.pauseHint);
+    this.pauseMenu = this.add.container(0, 0, parts).setDepth(40).setVisible(false);
+  }
+
+  /** Pauses or resumes the fight (not in attract mode, or once it's ending). */
+  setPaused(on: boolean) {
+    if (ATTRACT || on === this.paused || (on && !this.alive)) return;
+    this.paused = on;
+    this.pauseCursor = 0;
+    this.time.paused = on;
+    if (on) this.tweens.pauseAll();
+    else this.tweens.resumeAll();
+    this.pauseMenu.setVisible(on);
+    playSound(this, 'select');
+  }
+
+  private pauseChoose(i: number) {
+    if (i === 0) { this.setPaused(false); return; }
+    // TITLE: the journey since the last shrine is lost, as with the field menu's BACK TO TITLE.
+    this.alive = false;
+    this.paused = false;
+    this.time.paused = false;
+    this.tweens.resumeAll();
+    (this.scene.get('world') as WorldScene).quit();
+  }
+
+  private pauseInput(input: ControlState) {
+    if (input.pause || input.menu || input.back) { this.setPaused(false); return; }
+    if (input.tapped) { this.pauseCursor = 1 - this.pauseCursor; playSound(this, 'select'); }
+    if (input.confirm) { this.pauseChoose(this.pauseCursor); return; }
+    this.drawPause(input.device);
+  }
+
+  private drawPause(device: Device) {
+    // The choice: a filled gold button and a pointer beside it; the other is an outline.
+    const g = this.pauseArt.clear(), y = 48 + 38;
+    [0, 1].forEach((i) => {
+      const bx = WIDTH / 2 + (i ? 6 : -6 - PAUSE.bw), on = i === this.pauseCursor;
+      if (on) g.fillStyle(COLORS.gold).fillRect(bx, y, PAUSE.bw, PAUSE.bh).fillStyle(COLORS.ink).fillRect(bx - 6, y + 9, 3, 4);
+      else g.lineStyle(1, COLORS.ink).strokeRect(bx + 0.5, y + 0.5, PAUSE.bw - 1, PAUSE.bh - 1);
+      (this.pauseMenu.getByName(`pause-${i}`) as Phaser.GameObjects.Text).setColor(on ? '#0b0e1e' : TEXT.ink);
+    });
+    this.pauseHint.setText(PAUSE_HINTS[device]);
   }
 
   private openCommands(cursor: number) {
@@ -185,7 +270,8 @@ export class BattleScene extends Phaser.Scene {
   /** The ring closes on (x, y) over `dur` seconds; the answer is whether the player pressed on it. */
   private ringAt(x: number, y: number, dur: number, who: Ring['who']): Promise<boolean> {
     if (this.registry.get(VALOR_SETTING) === false) return this.wait(dur * 1000).then(() => false);
-    this.ring = { x, y, t: 0, dur, hit: null, who };
+    // Attract mode's pilot lands about 70% of its rings.
+    this.ring = { x, y, t: 0, dur, hit: null, who, demoPress: ATTRACT && Math.random() < 0.7 };
     return new Promise((resolve) => { this.ringDone = resolve; });
   }
 
@@ -423,15 +509,27 @@ export class BattleScene extends Phaser.Scene {
 
   update(_time: number, delta: number) {
     const dt = Math.min(0.05, delta / 1000);
-    this.clock += dt;
-    const input = this.controls.read();
+    const input: ControlState = ATTRACT
+      ? { dir: null, tapped: null, confirm: false, back: false, menu: false, mute: false, pause: false, device: 'kbm' }
+      : this.controls.read();
     this.device = input.device;
     if (input.mute) toggleMute(this);
+    // Attract mode: a long fight still ends the demo on time.
+    if (ATTRACT) { const world = this.scene.get('world') as WorldScene; if (world.demoExpired()) { world.nextDemo(); return; } }
+    if (this.paused) { this.pauseInput(input); publishHud(this, this.journey, this.device, 'battle'); return; }
+    if ((input.pause || input.menu) && this.alive) {
+      this.setPaused(true);
+      this.drawPause(input.device);
+      publishHud(this, this.journey, this.device, 'battle');
+      return;
+    }
+    this.clock += dt;
     this.fx.update(dt);
 
     if (this.ring) {
       const r = this.ring;
       r.t += dt;
+      if (r.demoPress && r.hit === null && r.t >= r.dur - 0.04) r.hit = true;
       if (input.confirm && r.hit === null) r.hit = Math.abs(r.dur - r.t) <= BATTLE.valorWindow;
       if (r.t >= r.dur + BATTLE.valorWindow) {
         const hit = r.hit === true;
@@ -552,7 +650,7 @@ export class BattleScene extends Phaser.Scene {
     });
     this.msgText.setVisible(!listing);
     const press = this.device === 'pad' ? 'A' : 'Z';
-    this.prompt.setText(this.ring ? (this.ring.who === 'hero' ? `PRESS ${press}\nON THE RING` : `PRESS ${press}\nTO GUARD`) : '');
+    this.prompt.setText(this.ring && !ATTRACT ? (this.ring.who === 'hero' ? `PRESS ${press}\nON THE RING` : `PRESS ${press}\nTO GUARD`) : '');
 
     const m = this.marks.clear(), g = this.ringG.clear();
     if (this.menu === 'cmd') m.fillStyle(COLORS.gold).fillRect(CMD.x + 9, CMD.y + 9 + this.cursor * 10, 3, 4);

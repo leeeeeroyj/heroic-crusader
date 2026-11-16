@@ -13,6 +13,8 @@ export interface ControlState {
   back: boolean;
   menu: boolean;
   mute: boolean;
+  /** P: opens the menu on the map, pauses a fight. (Start and Esc are `menu`, which does the same.) */
+  pause: boolean;
   device: Device;
 }
 
@@ -21,11 +23,11 @@ const STICK = 0.5;
 const BTN = { A: 0, B: 1, BACK: 8, START: 9 } as const;
 const TRACKED = Object.values(BTN);
 
-type KeyName = 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'W' | 'A' | 'S' | 'D' | 'Z' | 'X' | 'SPACE' | 'ENTER' | 'BACKSPACE' | 'ESC' | 'M';
+type KeyName = 'LEFT' | 'RIGHT' | 'UP' | 'DOWN' | 'W' | 'A' | 'S' | 'D' | 'Z' | 'X' | 'SPACE' | 'ENTER' | 'BACKSPACE' | 'ESC' | 'M' | 'P';
 
 /**
  * One input layer. Keyboard: arrows or WASD walk and choose, Z / Space / Enter confirm, X / Backspace go back,
- * Esc opens the menu, M toggles sound. Controller: D-pad or left stick, A confirm, B back, Start menu, Back sound.
+ * Esc opens the menu (P too; both pause a fight), M toggles sound. Controller: D-pad or left stick, A confirm, B back, Start menu, Back sound.
  * Touch arrives with the touch controls. The last device used decides the hints. Construct one per scene.
  */
 export class Controls {
@@ -38,7 +40,7 @@ export class Controls {
   private readonly seen = new Map<Phaser.Input.Keyboard.Key, number>();
 
   constructor(private readonly scene: Phaser.Scene) {
-    this.keys = scene.input.keyboard!.addKeys('LEFT,RIGHT,UP,DOWN,W,A,S,D,Z,X,SPACE,ENTER,BACKSPACE,ESC,M') as Controls['keys'];
+    this.keys = scene.input.keyboard!.addKeys('LEFT,RIGHT,UP,DOWN,W,A,S,D,Z,X,SPACE,ENTER,BACKSPACE,ESC,M,P') as Controls['keys'];
     for (const key of Object.values(this.keys)) this.seen.set(key, key.timeDown);
     scene.input.mouse?.disableContextMenu();
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.device = p.wasTouch ? 'touch' : 'kbm'; });
@@ -64,10 +66,11 @@ export class Controls {
     let back = j.X || j.BACKSPACE;
     let menu = j.ESC;
     let mute = j.M;
+    const pause = j.P;
     let tapped: Dir | null = j.UP || j.W ? 'up' : j.DOWN || j.S ? 'down' : j.LEFT || j.A ? 'left' : j.RIGHT || j.D ? 'right' : null;
     let dir: Dir | null = k.UP.isDown || k.W.isDown ? 'up' : k.DOWN.isDown || k.S.isDown ? 'down'
       : k.LEFT.isDown || k.A.isDown ? 'left' : k.RIGHT.isDown || k.D.isDown ? 'right' : null;
-    if (confirm || back || menu || mute || dir || tapped) this.device = 'kbm';
+    if (confirm || back || menu || mute || pause || dir || tapped) this.device = 'kbm';
 
     const pad = this.pad();
     const down = new Set(pad ? TRACKED.filter((i) => pad.buttons[i]?.pressed) : []);
@@ -86,6 +89,6 @@ export class Controls {
       menu ||= edges.has(BTN.START);
       mute ||= edges.has(BTN.BACK);
     }
-    return { dir, tapped, confirm, back, menu, mute, device: this.device };
+    return { dir, tapped, confirm, back, menu, mute, pause, device: this.device };
   }
 }

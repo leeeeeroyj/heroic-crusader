@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, HEIGHT, HERO, RENDER_SCALE, SPRITES, TEXT, TILE, WIDTH, type SpriteKey } from '../config';
+import { ATTRACT, attractSeed } from '../attract';
 import { Controls } from '../controls';
 import { playSound, registerSounds, restoreMute, toggleMute } from '../sfx';
 import { bakeKin, face } from '../sprites';
@@ -43,6 +44,11 @@ export class TitleScene extends Phaser.Scene {
   }
 
   create() {
+    // Attract mode goes straight to a demo once the sprites are loaded (and the creature kin baked from them).
+    if (ATTRACT) {
+      bakeKin(this);
+      return void this.scene.start('world', { attract: attractSeed() });
+    }
     this.leaving = false;
     this.padStatus = undefined;
     this.stage = 'menu';
@@ -104,8 +110,8 @@ export class TitleScene extends Phaser.Scene {
       this.add.text(x - 4, 155, keys, { fontFamily: FONT, fontSize: '8px', color: TEXT.ink, align: 'right', lineSpacing: 2 }).setOrigin(1, 0);
       this.add.text(x + 4, 155, actions, { fontFamily: FONT, fontSize: '8px', color: TEXT.dim, lineSpacing: 2 });
     };
-    column(112, 'KEYBOARD', 'ARROWS / WASD\nZ / SPACE / ENTER\nX / BACKSPACE\nESC\nM', 'WALK, CHOOSE\nCONFIRM\nBACK\nMENU\nSOUND ON/OFF');
-    column(308, 'CONTROLLER', 'D-PAD / STICK\nA\nB\nSTART\nBACK', 'WALK, CHOOSE\nCONFIRM\nBACK\nMENU\nSOUND ON/OFF');
+    column(112, 'KEYBOARD', 'ARROWS / WASD\nZ / SPACE / ENTER\nX / BACKSPACE\nESC / P\nM', 'WALK, CHOOSE\nCONFIRM\nBACK\nMENU, PAUSE\nSOUND ON/OFF');
+    column(308, 'CONTROLLER', 'D-PAD / STICK\nA\nB\nSTART\nBACK', 'WALK, CHOOSE\nCONFIRM\nBACK\nMENU, PAUSE\nSOUND ON/OFF');
     this.padStatus = text(cx, 214, '', 8, TEXT.dim);
   }
 

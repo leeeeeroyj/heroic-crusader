@@ -25,9 +25,10 @@ export async function until(fn, ms = 15000, step = 100) {
 
 /**
  * Starts the dev server on `port` (strict, so it never lands on another game's server) and Chrome on `debugPort`,
- * then opens the game. `touch` turns on touch emulation and `pointer: coarse` before the page loads.
+ * then opens the game at `path`. `touch` turns on touch emulation and `pointer: coarse` before the page loads; `init` is
+ * a script that runs in the page before the game's own.
  */
-export async function session({ project, out, port, debugPort, width = 1664, height = 992, touch = false, mobile = false }) {
+export async function session({ project, out, port, debugPort, width = 1664, height = 992, touch = false, mobile = false, path = '/', init = '' }) {
   mkdirSync(out, { recursive: true });
   const results = [];
   const errors = [];
@@ -110,7 +111,8 @@ export async function session({ project, out, port, debugPort, width = 1664, hei
   }
   // Each test starts with no save: the profile directory is reused between runs, and so is its localStorage.
   await send('Storage.clearDataForOrigin', { origin: `http://localhost:${port}`, storageTypes: 'local_storage' });
-  await send('Page.navigate', { url: `http://localhost:${port}/` });
+  if (init) await send('Page.addScriptToEvaluateOnNewDocument', { source: init });
+  await send('Page.navigate', { url: `http://localhost:${port}${path}` });
 
   return { send, evaluate, until, shot, down, up, tap, click, press, move, lift, check, done, errors, sleep };
 }
