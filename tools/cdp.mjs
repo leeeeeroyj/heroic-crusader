@@ -8,8 +8,10 @@ export { sleep };
 
 const KEYS = {
   ArrowRight: [39, 'ArrowRight'], ArrowLeft: [37, 'ArrowLeft'], ArrowUp: [38, 'ArrowUp'], ArrowDown: [40, 'ArrowDown'],
-  Enter: [13, 'Enter'], Escape: [27, 'Escape'], ' ': [32, 'Space'], m: [77, 'KeyM'],
-  w: [87, 'KeyW'], a: [65, 'KeyA'], s: [83, 'KeyS'], d: [68, 'KeyD'], z: [90, 'KeyZ'], x: [88, 'KeyX'],
+  Enter: [13, 'Enter'], Escape: [27, 'Escape'], ' ': [32, 'Space'],
+  Backspace: [8, 'Backspace'],
+  // Every letter, lower case: a: [65, 'KeyA'] and so on.
+  ...Object.fromEntries([...'abcdefghijklmnopqrstuvwxyz'].map((c) => [c, [c.toUpperCase().charCodeAt(0), `Key${c.toUpperCase()}`]])),
 };
 
 export async function until(fn, ms = 15000, step = 100) {
@@ -106,6 +108,8 @@ export async function session({ project, out, port, debugPort, width = 1664, hei
     await send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
     await send('Emulation.setEmulatedMedia', { features: [{ name: 'pointer', value: 'coarse' }, { name: 'hover', value: 'none' }] });
   }
+  // Each test starts with no save: the profile directory is reused between runs, and so is its localStorage.
+  await send('Storage.clearDataForOrigin', { origin: `http://localhost:${port}`, storageTypes: 'local_storage' });
   await send('Page.navigate', { url: `http://localhost:${port}/` });
 
   return { send, evaluate, until, shot, down, up, tap, click, press, move, lift, check, done, errors, sleep };

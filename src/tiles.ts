@@ -10,6 +10,10 @@ export const PAL = {
   sand: '#e3cf94', sand2: '#d2bb7c', wood: '#8a5a32', wood2: '#6b4423', roofRed: '#c2493d', roofBlue: '#3f6fb0', roofBlue2: '#2c4f86', roofWhite: '#eef3fb',
   wall: '#efe5cc', wallShade: '#c4b694', door: '#3a2a1e', smoke: '#d9d2c0', flag: '#f3b84a',
   gloam: '#2a1a40', gloam2: '#4a2f73', gloamHi: '#9d7be0', mouth: '#05030a', tower: '#2b2433',
+  cobble: '#a69c8a', cobble2: '#8a8172', cobbleHi: '#c2b9a6', floor: '#b07a4a', floor2: '#94633a', carpet: '#a8323a', carpet2: '#c9464b',
+  stoneWall: '#7a7486', stoneWall2: '#5c5768', stoneTop: '#a29cb0', counter: '#7a4e2a', counterTop: '#b07f4c', sheet: '#e8e4d8',
+  blanket: '#3f6fb0', altar: '#d8d0e8', altar2: '#a89fc0', iron: '#3c3a44', ironHi: '#6a6878', pot: '#9a5a3a', pot2: '#73412a',
+  gilt: '#d9b03c', gilt2: '#9e7a22', pane: '#9fc4e8', candle: '#f3e3b0',
 } as const;
 
 const LINKS = '=BCVFH1234';
@@ -70,6 +74,37 @@ function paintTile(g: CanvasRenderingContext2D, map: WorldMap, t: string, x: num
       break;
     }
     case 'G': f(PAL.gloam, 0, 0, 16, 16); f(PAL.mouth, 3, 5, 10, 11); f(PAL.gloam2, 2, 4, 12, 2); f(PAL.gloamHi, 7, 8, 2, 2); break;
+    // ---- Town tiles ----
+    case 'P':
+      f(PAL.snow, 0, 0, 16, 16); dots(PAL.snow2, 3, 2, 1);
+      f(PAL.trunk, 7, 12, 2, 3); f(PAL.tree, 3, 7, 10, 5); f(PAL.tree, 5, 3, 6, 5); f(PAL.tree2, 7, 1, 2, 3); f(PAL.cap, 4, 7, 4, 1); f(PAL.cap, 6, 3, 3, 1);
+      break;
+    case 'o':
+      f(PAL.cobble, 0, 0, 16, 16);
+      for (let b = 0; b < 16; b += 4) { f(PAL.cobble2, 0, b + 3, 16, 1); for (let a = (b / 4) % 2 ? 2 : 6; a < 16; a += 8) f(PAL.cobble2, a, b, 1, 3); }
+      dots(PAL.cobbleHi, 3);
+      break;
+    case 'f': f(PAL.floor, 0, 0, 16, 16); for (let b = 3; b < 16; b += 4) f(PAL.floor2, 0, b, 16, 1); f(PAL.floor2, 5, 0, 1, 3); f(PAL.floor2, 11, 4, 1, 3); f(PAL.floor2, 3, 8, 1, 3); f(PAL.floor2, 9, 12, 1, 3); break;
+    case 'c': f(PAL.carpet, 0, 0, 16, 16); f(PAL.gilt, 1, 0, 1, 16); f(PAL.gilt, 14, 0, 1, 16); f(PAL.carpet2, 4, 0, 8, 16); break;
+    case '#':
+      f(PAL.stoneWall, 0, 0, 16, 16);
+      for (let b = 0; b < 16; b += 5) { f(PAL.stoneWall2, 0, b + 4, 16, 1); for (let a = (b / 5) % 2 ? 3 : 8; a < 16; a += 10) f(PAL.stoneWall2, a, b, 1, 4); }
+      f(PAL.stoneTop, 0, 0, 16, 2);
+      break;
+    case 'k': f(PAL.floor, 0, 0, 16, 16); f(PAL.counter, 0, 4, 16, 11); f(PAL.counterTop, 0, 3, 16, 3); f(PAL.floor2, 0, 14, 16, 1); break;
+    case 'b': f(PAL.floor, 0, 0, 16, 16); f(PAL.wood2, 2, 1, 12, 14); f(PAL.sheet, 3, 2, 10, 4); f(PAL.blanket, 3, 6, 10, 8); f(PAL.roofBlue2, 3, 6, 10, 1); break;
+    case 'a': f(PAL.floor, 0, 0, 16, 16); f(PAL.altar2, 1, 6, 14, 9); f(PAL.altar, 1, 5, 14, 3); f(PAL.candle, 3, 1, 2, 4); f(PAL.candle, 11, 1, 2, 4); f('#ffffff', 3, 0, 2, 1); f('#ffffff', 11, 0, 2, 1); break;
+    case 'n': f(PAL.floor, 0, 0, 16, 16); f(PAL.wood2, 5, 9, 6, 6); f(PAL.iron, 2, 4, 12, 5); f(PAL.iron, 0, 4, 3, 2); f(PAL.ironHi, 3, 4, 10, 1); break;
+    case 'p': f(PAL.floor, 0, 0, 16, 16); for (const [a, b] of [[1, 2], [8, 5], [3, 9]]) { f(PAL.pot2, a, b + 1, 6, 6); f(PAL.pot, a + 1, b, 4, 6); f(PAL.wood2, a + 2, b - 1, 2, 1); } break;
+    case 'q': f(PAL.carpet, 0, 0, 16, 16); f(PAL.gilt2, 2, 2, 12, 13); f(PAL.gilt, 3, 1, 10, 10); f(PAL.carpet2, 5, 3, 6, 7); f(PAL.gilt, 2, 10, 12, 3); break;
+    case 'U': case 'W': {
+      const snowy = t === 'W';
+      f(snowy ? PAL.roofWhite : PAL.roofBlue, 0, 0, 16, 16);
+      for (let b = 3; b < 16; b += 4) f(snowy ? PAL.snow2 : PAL.roofBlue2, 0, b, 16, 1);
+      break;
+    }
+    case 'w': f(PAL.wall, 0, 0, 16, 16); f(PAL.wallShade, 0, 0, 16, 2); f(PAL.wood2, 4, 5, 8, 6); f(PAL.pane, 5, 6, 6, 4); f(PAL.wood2, 7, 6, 1, 4); break;
+    case 'd': f(PAL.wall, 0, 0, 16, 16); f(PAL.wallShade, 0, 0, 16, 2); f(PAL.door, 4, 4, 8, 12); f(PAL.wood, 5, 5, 6, 11); f(PAL.gilt, 9, 10, 1, 1); break;
     default: grass();
   }
 }

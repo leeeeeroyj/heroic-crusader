@@ -27,12 +27,34 @@ export const HERO = {
   agility: 6,
 } as const;
 
-/** Equipment: what each piece adds to attack (weapons) or defence (armour, shields). Shops arrive with the towns. */
+/**
+ * Equipment: what each piece adds to attack (weapons) or defence (armour, shields), and its price. Buying a piece
+ * equips it and trades the old one in for half its price.
+ */
 export const GEAR = {
-  stick: { slot: 'weapon', name: 'Oak Stick', power: 4 },
-  tunic: { slot: 'armour', name: 'Quilted Tunic', power: 2 },
+  stick: { slot: 'weapon', name: 'Oak Stick', power: 4, price: 10 },
+  knife: { slot: 'weapon', name: "Hunter's Knife", power: 10, price: 45 },
+  ironblade: { slot: 'weapon', name: 'Iron Blade', power: 18, price: 180 },
+  frostbrand: { slot: 'weapon', name: 'Frostbrand', power: 28, price: 520 },
+  tunic: { slot: 'armour', name: 'Quilted Tunic', power: 2, price: 8 },
+  hidevest: { slot: 'armour', name: 'Hide Vest', power: 6, price: 35 },
+  ringcoat: { slot: 'armour', name: 'Ring Coat', power: 12, price: 150 },
+  scalecoat: { slot: 'armour', name: 'Scale Coat', power: 20, price: 440 },
+  wicker: { slot: 'shield', name: 'Wicker Shield', power: 3, price: 25 },
+  buckler: { slot: 'shield', name: 'Iron Buckler', power: 8, price: 120 },
+  kite: { slot: 'shield', name: 'Kite Shield', power: 14, price: 360 },
 } as const;
 export type GearId = keyof typeof GEAR;
+export type GearSlot = (typeof GEAR)[GearId]['slot'];
+
+/** A night at each town's inn. */
+export const INN: Record<string, number> = { C: 6, V: 12, F: 20 };
+
+/** The one save slot in localStorage. Bump the version when the journey's shape changes. */
+export const SAVE = { key: 'heroic-crusader-save', version: 1 } as const;
+
+/** Townsfolk drawn as recolours of a picked sprite, baked at load like the creature kin. */
+export const NPC_KIN = { hermit: { base: 'villager', tint: { hue: 140, sat: 0.5, light: 0.8 } } } as const;
 export const START_GEAR: { weapon: GearId | null; armour: GearId | null; shield: GearId | null } = { weapon: 'stick', armour: 'tunic', shield: null };
 
 /**

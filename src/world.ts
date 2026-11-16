@@ -1,10 +1,12 @@
 // Grid rules for maps. Pure: no Phaser, so tests import it straight from the dev server.
 import { ENCOUNTER, POOLS, type CreatureId, type Ground } from './config';
-import { HOLLOW_CORNER, OVERWORLD, SITES, TERRAIN_REGION } from './data/maps';
+import { HOLLOW_CORNER, OVERWORLD, SITES, TERRAIN_REGION, TOWNS } from './data/maps';
 
 export interface Point { x: number; y: number }
 
 export interface WorldMap {
+  /** The overworld, or a town (no fights; walk out of the bottom to leave). */
+  kind: 'world' | 'town';
   w: number;
   h: number;
   /** grid[y][x]: one character per tile. */
@@ -54,14 +56,24 @@ export function buildOverworld(): WorldMap {
     beacons.forEach((b, i) => { const d = Math.abs(b.x - x) + Math.abs(b.y - y) * 1.2; if (d < bd) { bd = d; best = i; } });
     return best;
   }));
-  return { w, h, grid, sites, region };
+  return { kind: 'world', w, h, grid, sites, region };
 }
+
+/** Builds a town's map: its grid, and its region's beacon for every tile. */
+export function buildTown(key: string): WorldMap {
+  const t = TOWNS[key], grid = t.map.map((r) => r.split(''));
+  return { kind: 'town', w: grid[0].length, h: grid.length, grid, sites: {}, region: grid.map((r) => r.map(() => t.region)) };
+}
+
+/** Town ground you can walk on; everything else (walls, counters, roofs, trees, water, furniture) blocks. */
+const TOWN_WALK = '.,*mofcB';
 
 export const tileAt = (map: WorldMap, x: number, y: number) => map.grid[y]?.[x] ?? 'M';
 
-/** Mountains and water block; the Gloam wall blocks until all four beacons burn. */
+/** Mountains and water block; the Gloam wall blocks until all four beacons burn. In towns, only open ground. */
 export function walkable(map: WorldMap, x: number, y: number, litCount: number) {
   const t = tileAt(map, x, y);
+  if (map.kind === 'town') return TOWN_WALK.includes(t);
   if (t === 'x') return litCount >= 4;
   return t !== 'M' && t !== '~';
 }
@@ -105,6 +117,7 @@ export function groundAt(map: WorldMap, x: number, y: number): Ground {
 
 /** Chance of a fight on this tile per step: none on sites or in the Hollow's corner, a third less where the beacon burns. */
 export function encounterOdds(map: WorldMap, x: number, y: number, lit: readonly boolean[]): number {
+  if (map.kind === 'town') return 0;
   const odds = ENCOUNTER.odds[tileAt(map, x, y)] ?? 0;
   const r = map.region[y]?.[x] ?? 0;
   if (r < 0) return 0;

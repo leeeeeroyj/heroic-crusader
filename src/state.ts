@@ -1,5 +1,6 @@
 // The journey's state: the hero and the beacons. Pure data, kept in the game registry under STATE.
 import { GEAR, HERO, ITEMS, LEVELS, SPELLS, START_GEAR, START_ITEMS, STATUS, type GearId, type ItemId, type SpellId } from './config';
+import { TOWNS } from './data/maps';
 
 export const STATE = 'journey';
 
@@ -24,7 +25,9 @@ export interface Journey {
   hero: Hero;
   /** One per beacon: Meadow, Marsh, Snow, Ruins. */
   lit: boolean[];
-  /** Tile position on the overworld; null means "at home". */
+  /** Where the hero is: 'world' for the overworld, or a town's site key. */
+  area: string;
+  /** Tile position in that area; null means the overworld's Brightkeep tile (a new journey). */
   at: { x: number; y: number } | null;
   /** Steps walked since the last fight. */
   sinceFight: number;
@@ -68,7 +71,15 @@ export function newJourney(): Journey {
   };
   hero.hp = maxHp(hero);
   hero.mp = maxMp(hero);
-  return { hero, lit: [false, false, false, false], at: null, sinceFight: 0, ward: 0 };
+  return { hero, lit: [false, false, false, false], area: 'world', at: null, sinceFight: 0, ward: 0 };
+}
+
+/** Puts the hero in their home town, before the shrine keeper (Homeward, and waking after a fall). */
+export function goHome(j: Journey) {
+  const town = TOWNS[j.hero.home];
+  j.area = j.hero.home;
+  j.at = { ...(town.shrine ?? town.arrive) };
+  j.sinceFight = 0;
 }
 
 /** After a fall: the shrine keeper tends the hero at their last shrine, for half their gold. Returns the gold lost. */
@@ -78,8 +89,7 @@ export function wakeAtShrine(j: Journey): number {
   h.hp = maxHp(h);
   h.mp = maxMp(h);
   h.poisoned = false;
-  j.at = null;
-  j.sinceFight = 0;
+  goHome(j);
   j.ward = 0;
   return lost;
 }

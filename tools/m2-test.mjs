@@ -39,7 +39,8 @@ async function pressOnRing(inside) {
 
 await until(() => evaluate(`!!(${G} && ${G}.scene.isActive('title'))`));
 await sleep(600);
-await tap('Enter');
+// Enter starts a new journey, then Enter again keeps the default name.
+for (let i = 0; i < 20 && !(await evaluate(`${G}.scene.isActive('world')`)); i++) { await tap('Enter', 30); await sleep(400); }
 await until(() => evaluate(`${G}.scene.isActive('world') && ${G}.scene.isActive('hud')`));
 await sleep(500);
 
@@ -182,8 +183,8 @@ await shot('6-snow');
 await fightItOut();
 await sleep(400);
 const fell = await hero();
-const home = await evaluate(`${WS}.map.sites.C`);
-check('a fall wakes the hero at the Brightkeep shrine', fell.at.x === home.x && fell.at.y === home.y, JSON.stringify(fell.at));
+const woke = await evaluate(`({ area: ${WS}.area, pos: ${WS}.pos })`);
+check('a fall wakes the hero at the Brightkeep shrine', woke.area === 'C' && woke.pos.x === 21 && woke.pos.y === 4, JSON.stringify(woke));
 check('a fall costs half the gold and restores HP', fell.gold === 26 && fell.hp === 22, `gold ${fell.gold}, HP ${fell.hp}`);
 const msg = await evaluate(`${G}.registry.get('hud').message?.text ?? ''`);
 check('the shrine keeper says what happened', msg.includes('Half your gold (25)'), msg);

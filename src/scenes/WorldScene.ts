@@ -1,18 +1,21 @@
 import Phaser from 'phaser';
-import { BUMP_EVERY, COLORS, CREATURES, ENCOUNTER, HEIGHT, LEVELS, RENDER_SCALE, STEP_TIME, TILE, WIDTH, type CreatureId, type Ground, type ItemId } from '../config';
+import { BUMP_EVERY, COLORS, CREATURES, ENCOUNTER, HEIGHT, LEVELS, RENDER_SCALE, STEP_TIME, TILE, WIDTH, type CreatureId, type Ground, type ItemId, type SpriteKey } from '../config';
 import { Controls } from '../controls';
-import { SITES } from '../data/maps';
+import { SITES, TOWNS } from '../data/maps';
+import { PEOPLE, type Person } from '../data/people';
 import { playSound, toggleMute } from '../sfx';
 import { face } from '../sprites';
-import { STATE, addItem, heroDef, maxHp, maxMp, newJourney, stepEffects, wakeAtShrine, type Journey } from '../state';
+import { STATE, addItem, goHome, heroDef, maxHp, maxMp, newJourney, stepEffects, wakeAtShrine, type Journey } from '../state';
 import { bakeMap } from '../tiles';
-import { DIRS, buildOverworld, groundAt, isLit, rng, rollEncounter, tileAt, walkable, type Dir, type WorldMap } from '../world';
+import { DIRS, buildOverworld, buildTown, groundAt, isLit, rng, rollEncounter, tileAt, walkable, type Dir, type WorldMap } from '../world';
 import type { BattleData } from './BattleScene';
 import { publishHud } from './HudScene';
+import type { TalkData } from './TalkScene';
 
-const MAP_KEY = 'overworld';
-
-/** The overworld: grid walking with a following camera, random encounters, and the hand-off to battle. */
+/**
+ * The overworld and the towns: grid walking with a following camera, random encounters and the hand-off to battle,
+ * townsfolk to talk to, and the field menu.
+ */
 export class WorldScene extends Phaser.Scene {
   map!: WorldMap;
   journey!: Journey;
@@ -21,13 +24,18 @@ export class WorldScene extends Phaser.Scene {
   /** The step in progress: where it started and how far through it is (0..1). */
   moving: { fx: number; fy: number; t: number } | null = null;
   facingRight = true;
+  /** The way the hero last tried to go: who they talk to. */
+  facing: Dir = 'up';
   steps = 0;
-  /** Walking, the encounter wipe, or paused under a battle or the field menu. */
-  mode: 'walk' | 'wipe' | 'battle' | 'menu' = 'walk';
+  /** Walking, the encounter wipe, or paused under a battle, the field menu or a conversation. */
+  mode: 'walk' | 'wipe' | 'battle' | 'menu' | 'talk' = 'walk';
   /** Random numbers for encounters and battles; a dev hook can seed it. */
   rand: () => number = rng(Date.now());
   /** Test switch: no random encounters. */
   calm = false;
+  /** The townsfolk of the current town, with their sprites. */
+  people: Array<{ p: Person; img: Phaser.GameObjects.Image }> = [];
+  private maps = new Map<string, WorldMap>();
   private controls!: Controls;
   private heroImg!: Phaser.GameObjects.Image;
   private mapImg!: Phaser.GameObjects.Image;
@@ -45,37 +53,63 @@ export class WorldScene extends Phaser.Scene {
     super('world');
   }
 
+  get area() {
+    return this.journey.area;
+  }
+
   create() {
     this.controls = new Controls(this);
-    this.map = buildOverworld();
+    this.maps.clear();
     if (!this.registry.has(STATE)) this.registry.set(STATE, newJourney());
     this.journey = this.registry.get(STATE) as Journey;
-    const start = this.journey.at ?? this.map.sites[this.journey.hero.home];
-    this.pos = { ...start };
     this.moving = null;
     this.mode = 'walk';
     this.message = null;
-    this.bakedFor = '';
+    this.people = [];
     this.mapImg = this.add.image(0, 0, '__DEFAULT').setOrigin(0).setDepth(0);
-    this.rebake();
     this.fires = this.add.graphics().setDepth(1);
-    this.heroImg = face(this.add.image(0, 0, 'player'), 'player', true).setDepth(2);
+    this.heroImg = face(this.add.image(0, 0, 'player'), 'player', true).setDepth(3);
     this.wipeG = this.add.graphics().setDepth(5);
     this.cameras.main.setZoom(RENDER_SCALE).setBackgroundColor(COLORS.night);
-    this.place = { name: SITES[this.journey.hero.home]?.name ?? '', t: 2.5 };
+    const j = this.journey;
+    this.enterArea(j.area, j.at ?? buildOverworld().sites[j.hero.home]);
     this.scene.launch('hud');
     this.cameras.main.fadeIn(300);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.scene.stop('hud'); this.scene.stop('battle'); });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { for (const s of ['hud', 'battle', 'menu', 'talk']) this.scene.stop(s); });
   }
 
-  /** Re-draws the map texture when the lit beacons change. */
+  private mapFor(area: string): WorldMap {
+    if (!this.maps.has(area)) this.maps.set(area, area === 'world' ? buildOverworld() : buildTown(area));
+    return this.maps.get(area)!;
+  }
+
+  /** Moves the hero into an area (the overworld or a town) at a tile, with its map, people and name. */
+  enterArea(area: string, at: { x: number; y: number }) {
+    this.journey.area = area;
+    this.map = this.mapFor(area);
+    this.pos = { x: at.x, y: at.y };
+    this.journey.at = { ...this.pos };
+    this.moving = null;
+    this.rebake();
+    for (const { img } of this.people) img.destroy();
+    this.people = (PEOPLE[area] ?? []).map((p) => ({
+      p, img: face(this.add.image(p.x * TILE + TILE / 2, p.y * TILE + TILE / 2, p.sprite).setDepth(2), p.sprite as SpriteKey, p.x < 13),
+    }));
+    const name = area === 'world' ? SITES[tileAt(this.map, at.x, at.y)]?.name : SITES[area]?.name;
+    this.place = name ? { name, t: 2.5 } : null;
+    this.drawHero();
+    this.followCamera();
+  }
+
+  /** Re-draws the map texture when the area or the lit beacons change. */
   rebake() {
-    const key = this.journey.lit.map(Number).join('');
+    const key = `${this.area}:${this.journey.lit.map(Number).join('')}`;
     if (key === this.bakedFor) return;
     this.bakedFor = key;
-    if (this.textures.exists(MAP_KEY)) this.textures.remove(MAP_KEY);
-    this.textures.addCanvas(MAP_KEY, bakeMap(this.map, this.journey.lit));
-    this.mapImg.setTexture(MAP_KEY);
+    const tex = `map-${this.area}`;
+    if (this.textures.exists(tex)) this.textures.remove(tex);
+    this.textures.addCanvas(tex, bakeMap(this.map, this.journey.lit));
+    this.mapImg.setTexture(tex);
   }
 
   update(_time: number, delta: number) {
@@ -96,6 +130,7 @@ export class WorldScene extends Phaser.Scene {
       this.moving.t += dt / STEP_TIME;
       if (this.moving.t >= 1) { this.moving = null; this.arrive(); }
     }
+    if (!this.moving && this.mode === 'walk' && input.confirm) this.interact();
     // Keep walking while a direction is held: the next step starts the frame the last one ends.
     if (!this.moving && this.mode === 'walk' && input.dir) this.step(input.dir);
 
@@ -107,12 +142,22 @@ export class WorldScene extends Phaser.Scene {
     publishHud(this, this.journey, input.device, 'walk', this.place, this.message);
   }
 
+  private personAt(x: number, y: number) {
+    return this.people.find((e) => e.p.x === x && e.p.y === y)?.p;
+  }
+
   /** Tries one step; faces that way either way. Returns whether the hero moved. */
   step(dir: Dir): boolean {
     const [dx, dy] = DIRS[dir];
     if (dx) this.facingRight = dx > 0;
+    this.facing = dir;
     const nx = this.pos.x + dx, ny = this.pos.y + dy;
-    if (!walkable(this.map, nx, ny, this.litCount())) {
+    // Out through a town's gate: back to its tile on the overworld.
+    if (this.map.kind === 'town' && (nx < 0 || ny < 0 || nx >= this.map.w || ny >= this.map.h)) {
+      this.leaveTown();
+      return true;
+    }
+    if (!walkable(this.map, nx, ny, this.litCount()) || this.personAt(nx, ny)) {
       if (this.clock >= this.bumpAt) { playSound(this, 'bump'); this.bumpAt = this.clock + BUMP_EVERY; }
       return false;
     }
@@ -129,11 +174,12 @@ export class WorldScene extends Phaser.Scene {
       playSound(this, 'poison');
       this.cameras.main.flash(120, 90, 160, 70);
     }
-    const site = SITES[tileAt(this.map, this.pos.x, this.pos.y)];
+    if (this.map.kind === 'town') return;
+    const key = tileAt(this.map, this.pos.x, this.pos.y), site = SITES[key];
     if (site) {
+      if (site.kind === 'town') { this.enterTown(key); return; }
       this.place = { name: site.name, t: 2.5 };
-      if (site.kind === 'town') this.rest(site.name);
-      else playSound(this, 'arrive');
+      playSound(this, 'arrive');
       return;
     }
     if (this.calm) return;
@@ -144,15 +190,50 @@ export class WorldScene extends Phaser.Scene {
     this.fight(fight.foes, fight.ground);
   }
 
-  /** Until towns have inns, walking into one is a night's rest. It cures poison too. */
-  private rest(name: string) {
-    const h = this.journey.hero;
-    if (h.hp === maxHp(h) && h.mp === maxMp(h) && !h.poisoned) { playSound(this, 'arrive'); return; }
-    h.hp = maxHp(h);
-    h.mp = maxMp(h);
-    h.poisoned = false;
-    this.message = { text: `You rest in ${name}. HP and MP restored.`, t: 2.5 };
-    playSound(this, 'rest');
+  /** Into a town from its tile on the overworld, at the gate. */
+  enterTown(key: string) {
+    playSound(this, 'arrive');
+    this.facing = 'up';
+    this.enterArea(key, TOWNS[key].arrive);
+    this.cameras.main.fadeIn(250);
+  }
+
+  private leaveTown() {
+    const key = this.area;
+    this.enterArea('world', this.mapFor('world').sites[key]);
+    this.place = null;
+    this.cameras.main.fadeIn(250);
+  }
+
+  /** Talks to whoever the hero faces, or across a counter; failing that, anyone right beside them. */
+  interact() {
+    const { x, y } = this.pos, counter = (cx: number, cy: number) => tileAt(this.map, cx, cy) === 'k';
+    const reach = (d: Dir) => {
+      const [dx, dy] = DIRS[d];
+      return this.personAt(x + dx, y + dy) ?? (counter(x + dx, y + dy) ? this.personAt(x + 2 * dx, y + 2 * dy) : undefined);
+    };
+    const p = reach(this.facing) ?? (['up', 'down', 'left', 'right'] as Dir[]).map(reach).find(Boolean);
+    if (p) this.talk(p);
+  }
+
+  /** Opens a conversation with someone over the paused map. */
+  talk(p: Person) {
+    if (this.mode !== 'walk') return;
+    this.mode = 'talk';
+    this.moving = null;
+    this.message = null;
+    this.place = null;
+    this.drawHero();
+    const data: TalkData = { person: p, town: this.area };
+    this.scene.launch('talk', data);
+    this.scene.bringToTop('talk');
+    this.scene.pause();
+  }
+
+  /** Called by the talk scene as it closes. */
+  closeTalk() {
+    this.mode = 'walk';
+    this.scene.resume();
   }
 
   /** Starts a fight: the wipe closes over the map, then the battle scene opens. */
@@ -199,8 +280,8 @@ export class WorldScene extends Phaser.Scene {
     this.journey.sinceFight = 0;
     if (outcome === 'lost') {
       const lost = wakeAtShrine(this.journey), home = this.journey.hero.home;
-      this.pos = { ...this.map.sites[home] };
-      this.journey.at = { ...this.pos };
+      this.facing = 'up';
+      this.enterArea(this.journey.area, this.journey.at!);
       this.message = { text: `The shrine keeper in ${SITES[home].name} tends your wounds. Half your gold (${lost}) is gone.`, t: 4 };
     }
     this.drawHero();
@@ -227,13 +308,9 @@ export class WorldScene extends Phaser.Scene {
     this.scene.resume();
     if (then === 'title') { this.leave(); return; }
     if (then === 'home') {
-      const home = this.journey.hero.home;
-      this.pos = { ...this.map.sites[home] };
-      this.journey.at = { ...this.pos };
-      this.journey.sinceFight = 0;
-      this.place = { name: SITES[home].name, t: 2.5 };
-      this.drawHero();
-      this.followCamera();
+      goHome(this.journey);
+      this.facing = 'up';
+      this.enterArea(this.journey.area, this.journey.at!);
       this.cameras.main.flash(300, 255, 244, 192);
       return;
     }
@@ -268,6 +345,7 @@ export class WorldScene extends Phaser.Scene {
   /** Lit beacons burn on their towers; cold ones show a grey brazier. */
   private drawFires() {
     const g = this.fires.clear();
+    if (this.map.kind !== 'world') return;
     ['1', '2', '3', '4'].forEach((k, i) => {
       const s = this.map.sites[k], x = s.x * TILE + 8, y = s.y * TILE - 2;
       if (!this.journey.lit[i]) {
@@ -285,12 +363,10 @@ export class WorldScene extends Phaser.Scene {
 
   // ---- Dev hooks (reached through the dev-only window handle) ----
 
-  /** Puts the hero on a tile or a site key. */
-  teleport(to: string | { x: number; y: number }) {
-    const p = typeof to === 'string' ? this.map.sites[to] : to;
-    this.pos = { x: p.x, y: p.y };
-    this.moving = null;
-    this.journey.at = { ...this.pos };
+  /** Puts the hero on a tile of an area (the overworld unless named), or on an overworld site by its key. */
+  teleport(to: string | { x: number; y: number }, area = 'world') {
+    if (typeof to === 'string') this.enterArea('world', this.mapFor('world').sites[to]);
+    else this.enterArea(area, to);
   }
 
   /** Lights the first n beacons (or an explicit list). */

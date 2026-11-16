@@ -16,8 +16,8 @@ export interface HudState {
   poisoned: boolean;
   lit: boolean[];
   device: Device;
-  /** Walking the map, or in a fight (the battle scene draws its own message window). */
-  mode: 'walk' | 'battle';
+  /** Walking the map, in a fight, or talking (the battle and talk scenes draw their own text boxes). */
+  mode: 'walk' | 'battle' | 'talk';
   /** A place name to show briefly, with seconds left. */
   place: { name: string; t: number } | null;
   /** A line for the message box while walking, with seconds left. */
@@ -39,15 +39,20 @@ export function publishHud(scene: Phaser.Scene, j: Journey, device: Device, mode
 // of game sprites, with no resampling. Every number below is in HUD units (2 per game pixel).
 const S = HUD_SCALE;
 const W = WIDTH * S, H = HEIGHT * S;
-const STATUS = { x: 6, y: 6, w: 400, h: 32 };
+const STATUS = { x: 6, y: 6, w: 456, h: 32 };
 const PIPS = { x: 676, y: 6, w: 112, h: 32 };
 const SPEAKER = { x: W - 34, y: 6, w: 30, h: 32 };
 const MESSAGE = { x: 176, y: 344, w: 480, h: 60 };
 const TOUCH_SOON = 'TOUCH CONTROLS ARE ON THE WAY: USE A KEYBOARD OR CONTROLLER FOR NOW';
 const HINTS: Record<HudState['mode'], Record<Device, string>> = {
   walk: {
-    kbm: 'ARROWS / WASD WALK  ·  ESC MENU  ·  M SOUND',
-    pad: 'D-PAD / STICK WALK  ·  START MENU  ·  BACK SOUND',
+    kbm: 'ARROWS / WASD WALK  ·  Z TALK  ·  ESC MENU  ·  M SOUND',
+    pad: 'D-PAD / STICK WALK  ·  A TALK  ·  START MENU  ·  BACK SOUND',
+    touch: TOUCH_SOON,
+  },
+  talk: {
+    kbm: 'ARROWS CHOOSE  ·  Z OK  ·  X BACK  ·  ESC LEAVE',
+    pad: 'D-PAD CHOOSE  ·  A OK  ·  B BACK  ·  START LEAVE',
     touch: TOUCH_SOON,
   },
   battle: {
@@ -92,11 +97,12 @@ export class HudScene extends Phaser.Scene {
     drawPanel(g, PIPS.x, PIPS.y, PIPS.w, PIPS.h);
     const ty = STATUS.y + 8;
     this.name = label(STATUS.x + 12, ty, '', TEXT.gold);
-    this.lv = label(STATUS.x + 78, ty, '');
-    this.hp = label(STATUS.x + 134, ty, '');
-    this.mp = label(STATUS.x + 250, ty, '');
-    this.add.image(STATUS.x + 330, STATUS.y + 16, 'coin');
-    this.gold = label(STATUS.x + 344, ty, '');
+    // Room for an eight-letter name.
+    this.lv = label(STATUS.x + 134, ty, '');
+    this.hp = label(STATUS.x + 190, ty, '');
+    this.mp = label(STATUS.x + 306, ty, '');
+    this.add.image(STATUS.x + 386, STATUS.y + 16, 'coin');
+    this.gold = label(STATUS.x + 400, ty, '');
     this.dynamic = this.add.graphics();
     this.hint = label(W / 2, H - 26, '', TEXT.dim).setOrigin(0.5, 0);
     this.placeText = this.add.text(W / 2, 96, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.gold }).setOrigin(0.5);

@@ -48,6 +48,7 @@ export const SOUNDS = {
   poison: { wave: 'square', freq: 180, steps: [0, 1, 0, 1], sustain: 0.16, decay: 0.08, duty: 0.25, volume: 0.18 },
   howl: { wave: 'saw', freq: 300, slide: 0.8, sustain: 0.45, decay: 0.25, vibrato: [6, 0.04], smooth: 0.4, volume: 0.25 },
   open: { wave: 'square', freq: 523, steps: [0, 7], sustain: 0.06, decay: 0.05, duty: 0.25, volume: 0.18 },
+  coin: { wave: 'square', freq: 988, steps: [0, 5], sustain: 0.08, decay: 0.12, duty: 0.5, volume: 0.2 },
 } satisfies Record<string, Voice>;
 
 export type SoundName = keyof typeof SOUNDS;

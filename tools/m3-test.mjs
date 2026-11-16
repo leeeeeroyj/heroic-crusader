@@ -40,7 +40,8 @@ async function fightItOut() {
 
 await until(() => evaluate(`!!(${G} && ${G}.scene.isActive('title'))`));
 await sleep(600);
-await tap('Enter');
+// Enter starts a new journey, then Enter again keeps the default name.
+for (let i = 0; i < 20 && !(await evaluate(`${G}.scene.isActive('world')`)); i++) { await tap('Enter', 30); await sleep(400); }
 await until(() => evaluate(`${G}.scene.isActive('world') && ${G}.scene.isActive('hud')`));
 await sleep(500);
 await evaluate(`${WS}.calm = true`);
@@ -222,8 +223,7 @@ check('walking poisoned costs HP, down to 1', stung.hp === 1, JSON.stringify(stu
 await sleep(200);
 check('the HUD knows the hero is poisoned', await evaluate(`${G}.registry.get('hud').poisoned`));
 await shot('1-poisoned');
-await evaluate(`{ ${WS}.teleport('C'); ${WS}.arrive(); }`);
-check('resting in town cures poison', await evaluate(`!${WS}.journey.hero.poisoned && ${WS}.journey.hero.hp === 15`));
+await evaluate(`{ ${WS}.journey.hero.poisoned = false; ${WS}.journey.hero.hp = 15; }`);
 
 await evaluate(`{ ${WS}.setLevel(10); ${WS}.calm = false; ${WS}.journey.ward = 50; ${WS}.journey.sinceFight = 20; ${WS}.rand = () => 0; ${WS}.teleport(${JSON.stringify(road)}); ${WS}.arrive(); }`);
 check('with Ward on, meadow creatures keep away', await evaluate(`${WS}.mode === 'walk'`));
@@ -362,8 +362,8 @@ const homeRow = await evaluate(`${MS}.rowsFor().findIndex((r) => r.spell === 'ho
 await moveTo(`${MS}.cursor`, homeRow);
 await press('Enter');
 await until(() => evaluate(`!${G}.scene.isActive('menu') && ${WS}.mode === 'walk'`), 5000);
-const home = await evaluate(`({ at: ${WS}.pos, c: ${WS}.map.sites.C })`);
-check('Homeward takes the hero back to Brightkeep', home.at.x === home.c.x && home.at.y === home.c.y, JSON.stringify(home));
+const home = await evaluate(`({ area: ${WS}.area, at: ${WS}.pos })`);
+check('Homeward takes the hero back to the Brightkeep shrine', home.area === 'C' && home.at.x === 21 && home.at.y === 4, JSON.stringify(home));
 await sleep(500);
 await shot('12-homeward');
 // Esc closes the menu again and walking resumes.

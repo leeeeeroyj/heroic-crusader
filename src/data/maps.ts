@@ -60,3 +60,106 @@ export const TERRAIN_REGION: Record<string, number> = {
 };
 /** The Hollow's corner: x at or beyond this, y at or above `y`. It belongs to no region and lights only with all four. */
 export const HOLLOW_CORNER = { x: 36, y: 5 } as const;
+
+/**
+ * Town maps, one screen each (26 × 15). Walk out through the gap at the bottom to leave.
+ * . grass, , flowers, T tree, P snowy pine, ~ water, B bridge, m marsh, * snow, o cobbles, f floor, c carpet,
+ * # wall, k counter (talk across it), b bed, a altar, n anvil, p pots, q throne, U / W roofs (blue / snowy), w house
+ * front, d door.
+ */
+export const TOWNS: Record<string, { map: readonly string[]; region: number; arrive: { x: number; y: number }; shrine?: { x: number; y: number } }> = {
+  // Brightkeep
+  C: {
+    region: 0,
+    arrive: { x: 12, y: 13 },
+    shrine: { x: 21, y: 4 },
+    map: [
+      'TTTTTTTTTTTTTTTTTTTTTTTTTT',
+      'T######T##########T######T',
+      'T#bffb#T#fffqqfff#T#faaf#T',
+      'T#ffff#T#fffccfff#T#ffff#T',
+      'T#kkkk#T#fffccfff#T#ffff#T',
+      'T#ffff#T#fffccfff#T#ffff#T',
+      'T###f##.####cc####.###f##T',
+      'T.oooooooooooooooooooooo.T',
+      'T.##f###.,,.oo.,,.###f##.T',
+      'T.#ffff#..T.oo.T..#ffff#.T',
+      'T.#kkkk#....oo....#kkkk#.T',
+      'T.#fffn#.,..oo..,.#pfff#.T',
+      'T.######..,.oo.,..######.T',
+      'TT..........oo..........TT',
+      'TTTTTTTTTT..oo..TTTTTTTTTT',
+    ],
+  },
+  // Fenbridge
+  V: {
+    region: 1,
+    arrive: { x: 12, y: 13 },
+    shrine: { x: 21, y: 4 },
+    map: [
+      '~~~~~~~~~~~~~~~~~~~~~~~~~~',
+      'm######m....~~....m######m',
+      'm#bffb#mUUU.~~.UUUm#faaf#m',
+      'm#ffff#mwdw.~~.wdwm#ffff#m',
+      'm#kkkk#m....BB....m#ffff#m',
+      'm#ffff#m.m..~~..m.m#ffff#m',
+      'm###f##.....~~.....###f##m',
+      'm.oooooooooooooooooooooo.m',
+      'm.##f###.m,.oo.,m.###f##.m',
+      'm.#ffff#..m.oo.T..#ffff#.m',
+      'm.#kkkk#....oo....#kkkk#.m',
+      'm.#fffn#.,m.oo.m,.#pfff#.m',
+      'm.######..,.oo.,..######.m',
+      'mm..........oo..........mm',
+      '~~~~~~~~~~..oo..~~~~~~~~~~',
+    ],
+  },
+  // Frostholm
+  F: {
+    region: 2,
+    arrive: { x: 12, y: 13 },
+    shrine: { x: 21, y: 4 },
+    map: [
+      'PPPPPPPPPPPPPPPPPPPPPPPPPP',
+      'P######P**********P######P',
+      'P#bffb#PWWW****WWWP#faaf#P',
+      'P#ffff#Pwdw****wdwP#ffff#P',
+      'P#kkkk#P****oo****P#ffff#P',
+      'P#ffff#P*P**oo**P*P#ffff#P',
+      'P###f##*****oo*****###f##P',
+      'P*oooooooooooooooooooooo*P',
+      'P*##f###***.oo.***###f##*P',
+      'P*#ffff#**P.oo.P**#ffff#*P',
+      'P*#kkkk#*...oo...*#kkkk#*P',
+      'P*#fffn#***.oo.***#pfff#*P',
+      'P*######*.*.oo.*.*######*P',
+      'PP**********oo**********PP',
+      'PPPPPPPPPP**oo**PPPPPPPPPP',
+    ],
+  },
+  // the hermit's clearing
+  H: {
+    region: 3,
+    arrive: { x: 12, y: 13 },
+    map: [
+      'TTTTTTTTTTTTTTTTTTTTTTTTTT',
+      'TTTTTT..............TTTTTT',
+      'TTTT.....,......,.....TTTT',
+      'TTT.......######.......TTT',
+      'TT........#pffp#........TT',
+      'TT..,.....#ffff#.....,..TT',
+      'TT........#kkkk#........TT',
+      'TT....T...#ffff#...T....TT',
+      'TTT.......###f##.......TTT',
+      'TTT.........oo.........TTT',
+      'TTTT..,.....oo.....,..TTTT',
+      'TTTT........oo........TTTT',
+      'TTTTT.......oo.......TTTTT',
+      'TTTTTT......oo......TTTTTT',
+      'TTTTTTTTTT..oo..TTTTTTTTTT',
+    ],
+  },
+};
+
+export const TOWN_W = 26;
+export const TOWN_H = 15;

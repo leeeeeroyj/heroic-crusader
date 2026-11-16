@@ -18,7 +18,8 @@ check('title scene runs', true);
 const missing = await evaluate(`(async () => { const { SPRITES } = await import('/src/config.ts'); return SPRITES.filter((k) => !${G}.textures.exists(k)); })()`);
 check('every sprite slot loaded', missing.length === 0, missing.join(', '));
 
-await tap('Enter');
+// Enter starts a new journey, then Enter again keeps the default name.
+for (let i = 0; i < 20 && !(await evaluate(`${G}.scene.isActive('world')`)); i++) { await tap('Enter', 30); await sleep(400); }
 await until(() => evaluate(`${G}.scene.isActive('world') && ${G}.scene.isActive('hud')`));
 await evaluate(`${WS}.calm = true`); // no random fights while this test walks about
 await sleep(900);
@@ -30,12 +31,14 @@ const hud = await evaluate(`${G}.registry.get('hud')`);
 check('HUD shows a level 1 hero at full HP', hud.lv === 1 && hud.hp === 15 && hud.maxHp === 15 && hud.name === 'WREN', JSON.stringify(hud).slice(0, 120));
 check('Brightkeep is named on arrival', hud.place?.name === 'Brightkeep');
 
-// Walking: a held key keeps stepping, one tile per 0.17 s.
+// Walking: a held key keeps stepping, one tile per 0.17 s of game time (slow frames slow the game clock, not the pace).
+const c0 = await evaluate(`${WS}.clock`);
 await hold('ArrowRight', 1200);
+const c1 = await evaluate(`${WS}.clock`);
 await settle();
 p = await pos();
-const stepped = p.x - home.x;
-check('holding right walks east tile by tile', p.y === home.y && stepped >= 5 && stepped <= 9, `${stepped} tiles in 1.2 s`);
+const stepped = p.x - home.x, expect = (c1 - c0) / 0.17;
+check('holding right walks east tile by tile', p.y === home.y && stepped >= 3 && Math.abs(stepped - expect) <= 2, `${stepped} tiles in ${(c1 - c0).toFixed(2)} s of game time`);
 check('the hero faces the way it walks', await evaluate(`${WS}.facingRight === true`));
 await hold('ArrowLeft', 200); await settle();
 check('a left step turns the hero round', await evaluate(`${WS}.facingRight === false`));
@@ -86,7 +89,7 @@ await evaluate(`${WS}.setLit(4)`);
 await hold('ArrowUp', 300); await settle();
 p = await pos();
 check('with all four lit the wall is gone', p.y < 5, JSON.stringify(p));
-check('the map re-bakes for the new beacons', await evaluate(`${WS}.bakedFor === '1111'`));
+check('the map re-bakes for the new beacons', await evaluate(`${WS}.bakedFor === 'world:1111'`));
 const pips = await evaluate(`${G}.registry.get('hud').lit`);
 check('HUD pips follow the beacons', pips.every(Boolean));
 await evaluate(`${WS}.teleport({ x: 37, y: 10 })`); await sleep(500);
