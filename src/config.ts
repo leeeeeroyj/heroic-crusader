@@ -40,6 +40,8 @@ export const GEAR = {
   hidevest: { slot: 'armour', name: 'Hide Vest', power: 6, price: 35 },
   ringcoat: { slot: 'armour', name: 'Ring Coat', power: 12, price: 150 },
   scalecoat: { slot: 'armour', name: 'Scale Coat', power: 20, price: 440 },
+  /** Found, not sold: the vault in Sunder Keep. */
+  dawnmail: { slot: 'armour', name: 'Dawn Mail', power: 28, price: 900 },
   wicker: { slot: 'shield', name: 'Wicker Shield', power: 3, price: 25 },
   buckler: { slot: 'shield', name: 'Iron Buckler', power: 8, price: 120 },
   kite: { slot: 'shield', name: 'Kite Shield', power: 14, price: 360 },
@@ -51,7 +53,7 @@ export type GearSlot = (typeof GEAR)[GearId]['slot'];
 export const INN: Record<string, number> = { C: 6, V: 12, F: 20 };
 
 /** The one save slot in localStorage. Bump the version when the journey's shape changes. */
-export const SAVE = { key: 'heroic-crusader-save', version: 1 } as const;
+export const SAVE = { key: 'heroic-crusader-save', version: 2 } as const;
 
 /** Townsfolk drawn as recolours of a picked sprite, baked at load like the creature kin. */
 export const NPC_KIN = { hermit: { base: 'villager', tint: { hue: 140, sat: 0.5, light: 0.8 } } } as const;
@@ -70,6 +72,12 @@ export const LEVELS: ReadonlyArray<readonly [number, number, number, number, num
 export const REGION_NAMES = ['Meadow', 'Marsh', 'Snow', 'Ruins'] as const;
 
 /** Every sprite exported by tools/sprites.py. */
+/**
+ * Light in the dungeons, in tiles around the hero: bare, by torch (until you leave), and by Glow (4 tiles, fading
+ * to 2 over its steps).
+ */
+export const LIGHT = { dark: 1, torch: 2, glow: 4, glowSteps: 200 } as const;
+
 export const SPRITES = [
   'player', 'villager', 'merchant', 'healer', 'queen',
   'hare', 'puffcap', 'crow', 'toad', 'wisp', 'bat', 'wolf', 'rustguard', 'golem',
@@ -78,7 +86,7 @@ export const SPRITES = [
 ] as const;
 export type SpriteKey = (typeof SPRITES)[number];
 /** Sprites whose art faces left (checked by eye, 2026-11-15); the rest face right or the viewer. */
-export const MIRROR: ReadonlySet<SpriteKey> = new Set(['player', 'crow', 'toad', 'rustguard']);
+export const MIRROR: ReadonlySet<SpriteKey> = new Set(['player', 'crow', 'toad', 'rustguard', 'warden_meadow', 'warden_marsh']);
 
 /** Registry key for the HUD's state, written by the world scene each frame. */
 export const HUD_STATE = 'hud';
@@ -137,6 +145,20 @@ export interface Traits {
   evade?: number;
 }
 
+/**
+ * A warden's big move, telegraphed a turn ahead: every third turn it shows `tell`, and the turn after it strikes.
+ * 'blow' is a guardable blow times `mult`; 'breath' does `dmg` straight (no ring; heal up when you see the tell);
+ * 'drain' does `dmg` straight and heals the warden by as much.
+ */
+export interface BigMove {
+  name: string;
+  tell: string;
+  kind: 'blow' | 'breath' | 'drain';
+  mult?: number;
+  dmg?: readonly [number, number];
+  poison?: boolean;
+}
+
 export interface CreatureDef {
   name: string;
   slot: SpriteKey;
@@ -149,6 +171,11 @@ export interface CreatureDef {
   xp: number;
   gold: number;
   traits?: Traits;
+  /** Wardens: the line they open with, and their big move. They resist Lull and can't be fled. */
+  intro?: string;
+  /** A proper name: no "the" before it. */
+  proper?: boolean;
+  big?: BigMove;
 }
 
 /**
@@ -172,12 +199,32 @@ export const CREATURES = {
   grimrook: { name: 'Grim Rook', slot: 'crow', tint: { hue: 20, sat: 3, light: 1.6 }, hp: 28, atk: 36, def: 24, agi: 22, xp: 22, gold: 28, traits: { spark: { chance: 0.35, dmg: [12, 18] }, steal: 0.15 } },
   shadefang: { name: 'Shadefang', slot: 'wolf', tint: { hue: 70, sat: 2.5, light: 0.5 }, hp: 50, atk: 56, def: 34, agi: 26, xp: 45, gold: 40, traits: { howl: 0.25 } },
   ironguard: { name: 'Ironguard', slot: 'rustguard', tint: { hue: 0, sat: 0.1, light: 1.3 }, hp: 64, atk: 60, def: 60, agi: 10, xp: 55, gold: 60 },
+  bristleback: {
+    name: 'Bristleback', proper: true, slot: 'warden_meadow', hp: 64, atk: 24, def: 12, agi: 9, xp: 60, gold: 80,
+    intro: 'Bristleback, warden of the Thornwood, bars the way to the beacon!',
+    big: { name: 'Bristleback charges!', tell: 'Bristleback paws the ground and lowers its tusks...', kind: 'blow', mult: 2 },
+  },
+  croakley: {
+    name: 'Sir Croakley', proper: true, slot: 'warden_marsh', hp: 150, atk: 46, def: 30, agi: 10, xp: 200, gold: 200, traits: { poison: 0.25 },
+    intro: 'Sir Croakley, warden of the Belfry, rises from the bell pool!',
+    big: { name: 'Sir Croakley spews a cloud of bog breath!', tell: "Sir Croakley's throat swells up like a bellows...", kind: 'breath', dmg: [14, 20], poison: true },
+  },
+  oldrime: {
+    name: 'Old Rime', proper: true, slot: 'warden_snow', hp: 210, atk: 58, def: 40, agi: 14, xp: 500, gold: 400,
+    intro: 'Old Rime, warden of the Spire, shakes the frost from its shoulders!',
+    big: { name: 'Old Rime breathes a howling frost wind!', tell: 'Old Rime draws in a long, cold breath...', kind: 'breath', dmg: [22, 30] },
+  },
+  regent: {
+    name: 'Hollow Regent', slot: 'warden_ruin', hp: 200, atk: 72, def: 44, agi: 20, xp: 900, gold: 600,
+    intro: 'The Hollow Regent rises from the throne of Sunder Keep!',
+    big: { name: 'A wave of gloom pours from the crown!', tell: 'The Regent raises its crown. Shadows gather...', kind: 'drain', dmg: [20, 26] },
+  },
   obsidian: { name: 'Obsidian Cairn', slot: 'golem', tint: { hue: 250, sat: 1.2, light: 0.6 }, hp: 96, atk: 64, def: 48, agi: 6, xp: 60, gold: 50, traits: { brace: true } },
 } as const satisfies Record<string, CreatureDef>;
 export type CreatureId = keyof typeof CREATURES;
 
-/** Battle grounds: the backdrop and the encounter pool. Hills, dungeons and the Hollow have their own. */
-export const GROUNDS = ['meadow', 'hills', 'marsh', 'snow', 'ruins', 'dungeon', 'hollow'] as const;
+/** Battle grounds: the backdrop and the encounter pool. Hills, each beacon dungeon and the Hollow have their own. */
+export const GROUNDS = ['meadow', 'hills', 'marsh', 'snow', 'ruins', 'barrow', 'belfry', 'spire', 'keep', 'hollow'] as const;
 export type Ground = (typeof GROUNDS)[number];
 
 /** What can jump out on each ground: one group is picked at random. */
@@ -187,7 +234,10 @@ export const POOLS: Record<Ground, CreatureId[][]> = {
   marsh: [['bogtoad'], ['marshwisp'], ['rotcap'], ['bogtoad', 'marshwisp'], ['puffcap', 'rotcap']],
   snow: [['frostfang'], ['rimehare'], ['frostwisp'], ['frostfang', 'frostfang'], ['frostfang', 'rimehare']],
   ruins: [['rustguard'], ['cairn'], ['gloombat', 'gloombat'], ['rustguard', 'gloombat'], ['grimrook', 'grimrook'], ['grimrook', 'rustguard']],
-  dungeon: [['duskbat', 'duskbat', 'duskbat'], ['duskbat', 'duskbat'], ['puffcap', 'duskbat']],
+  barrow: [['duskbat', 'duskbat'], ['puffcap', 'duskbat'], ['duskbat'], ['rook', 'duskbat'], ['puffcap', 'puffcap']],
+  belfry: [['bogtoad'], ['marshwisp'], ['rotcap', 'duskbat'], ['bogtoad', 'rotcap'], ['marshwisp', 'marshwisp']],
+  spire: [['frostwisp'], ['frostfang', 'frostwisp'], ['rimehare', 'rimehare'], ['frostfang', 'frostfang'], ['frostwisp', 'rimehare']],
+  keep: [['rustguard', 'grimrook'], ['cairn'], ['gloombat', 'gloombat'], ['ironguard'], ['shadefang'], ['rustguard', 'rustguard']],
   hollow: [['shadefang', 'shadefang'], ['ironguard'], ['obsidian'], ['shadefang', 'ironguard'], ['gloombat', 'gloombat', 'gloombat']],
 };
 
@@ -233,6 +283,8 @@ export const STATUS = {
 export const ENCOUNTER = {
   /** Chance of a fight per step, by tile. Roads are safest, marsh and ruins the worst. */
   odds: { '=': 1 / 48, B: 1 / 48, ':': 1 / 30, '.': 1 / 22, ',': 1 / 22, T: 1 / 14, h: 1 / 12, m: 1 / 10, '*': 1 / 14, r: 1 / 10 } as Record<string, number>,
+  /** Chance per step on a dungeon floor (not the stairs). */
+  dungeon: 1 / 16,
   /** Steps after a fight with no new one. */
   grace: 5,
   /** Odds are multiplied by this where the region's beacon burns. */

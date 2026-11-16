@@ -1,7 +1,7 @@
 // Battle rules. Pure: no Phaser, so tests and the balance probe import it straight from the dev server.
 // A battle is played as a generator of events. The scene plays each one back; the two ring events (the hero's strike
 // and a foe's blow) wait for an answer, whether the player pressed on the ring.
-import { BATTLE, CREATURES, ITEMS, LEVELS, SPELLS, STATUS, type CreatureId, type Ground, type ItemId, type SpellId, type Traits } from './config';
+import { BATTLE, CREATURES, ITEMS, LEVELS, SPELLS, STATUS, type BigMove, type CreatureDef, type CreatureId, type Ground, type ItemId, type SpellId, type Traits } from './config';
 import { count, heal, heroAgi, heroAtk, heroDef, maxHp, maxMp, takeItem, toNext, type Hero } from './state';
 
 export type Rng = () => number;
@@ -30,6 +30,10 @@ export interface Foe {
   turns: number;
   /** Wardens shrug off Lull and can't be fled. */
   warden: boolean;
+  /** A warden's big move, and its beat: every third turn it tells, and the next it strikes. */
+  big: BigMove | null;
+  beat: number;
+  charged: boolean;
 }
 
 export interface Battle {
@@ -66,6 +70,10 @@ export type BattleEvent =
   | { type: 'miss'; target: number; text: string }
   /** A foe flashes white: it's about to act. */
   | { type: 'foeReady'; foe: number }
+  /** A warden gathers itself: its big move comes next turn. */
+  | { type: 'tell'; foe: number; text: string }
+  /** The big move lands now (its damage follows as heroHurt). */
+  | { type: 'big'; foe: number; text: string }
   /** A foe lunges at the hero; answer true if the player pressed on the ring. */
   | { type: 'foeStrike'; foe: number }
   /** `base` is the damage before a guard. */
@@ -88,10 +96,10 @@ export type BattleEvent =
 export type BattleScript = Generator<BattleEvent, void, boolean | undefined>;
 
 export function makeFoe(id: CreatureId): Foe {
-  const c: { name: string; hp: number; atk: number; def: number; agi: number; xp: number; gold: number; traits?: Traits } = CREATURES[id];
+  const c: CreatureDef = CREATURES[id];
   return {
     id, name: c.name, hp: c.hp, maxHp: c.hp, atk: c.atk, def: c.def, agi: c.agi, xp: c.xp, gold: c.gold, traits: c.traits ?? {},
-    freed: false, gone: false, sleep: 0, braced: false, turns: 0, warden: false,
+    freed: false, gone: false, sleep: 0, braced: false, turns: 0, warden: !!c.big, big: c.big ?? null, beat: 0, charged: false,
   };
 }
 export const makeFoes = (ids: readonly CreatureId[]) => ids.map(makeFoe);
@@ -164,15 +172,19 @@ export function gainValor(hero: Hero, xp: number): number[] {
   return out;
 }
 
+/** A foe's name in a sentence: "the Rook", but "Bristleback". */
+const the = (f: Foe): string => ((CREATURES[f.id] as CreatureDef).proper ? f.name : `the ${f.name}`);
+const The = (f: Foe): string => ((CREATURES[f.id] as CreatureDef).proper ? f.name : `The ${f.name}`);
+
 const listNames = (names: string[]) => (names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`);
 
 /** The start of a fight: who appears, and a quick foe may strike first. */
 export function* opening(b: Battle): BattleScript {
-  const names = b.foes.map((f) => f.name);
-  yield { type: 'say', text: names.length === 1 ? `A ${names[0]} blocks the way!` : `${listNames(names)} appear!` };
+  const names = b.foes.map((f) => f.name), intro = CREATURES[b.foes[0].id] as CreatureDef;
+  yield { type: 'say', text: intro.intro ?? (names.length === 1 ? `A ${names[0]} blocks the way!` : `${listNames(names)} appear!`) };
   const quick = living(b).sort((a, c) => c.agi - a.agi)[0];
   if (quick && quick.agi >= heroAgi(b.hero) + BATTLE.ambushGap && b.rng() < BATTLE.ambushChance) {
-    yield { type: 'say', text: `The ${quick.name} strikes before you can act!` };
+    yield { type: 'say', text: `${The(quick)} strikes before you can act!` };
     yield* foeTurn(b, quick);
     if (b.hero.hp <= 0) yield* fall(b);
   }
@@ -193,7 +205,9 @@ export function* round(b: Battle, action: Action): BattleScript {
   } else if (action.type === 'fight') yield* heroFight(b, action.target);
   else if (action.type === 'spell') yield* heroSpell(b, action.spell, action.target);
   else if (action.type === 'item') yield* heroItem(b, action.item);
-  else {
+  else if (living(b).some((f) => f.warden)) {
+    yield { type: 'say', text: `${h.name} turns to run, but ${the(living(b).find((f) => f.warden)!)} bars the way!` };
+  } else {
     yield { type: 'say', text: `${h.name} turns to run...` };
     if (fleeWorks(b.rng)) {
       b.outcome = 'fled';
@@ -228,7 +242,7 @@ function hurtFoe(f: Foe, dmg: number): { d: number; note: string } {
   const d = f.braced ? Math.floor(dmg / 2) : dmg;
   f.hp = Math.max(0, f.hp - d);
   let note = f.braced ? ' It is braced.' : '';
-  if (f.sleep > 0 && d > 0 && f.hp > 0) { f.sleep = 0; note += ` The ${f.name} wakes up!`; }
+  if (f.sleep > 0 && d > 0 && f.hp > 0) { f.sleep = 0; note += ` ${The(f)} wakes up!`; }
   return { d, note };
 }
 
@@ -237,13 +251,13 @@ function* heroFight(b: Battle, target: number): BattleScript {
   yield { type: 'say', text: `${h.name} attacks!` };
   const valor = (yield { type: 'heroStrike', target: i }) === true;
   if (foe.traits.evade && b.rng() < foe.traits.evade) {
-    yield { type: 'miss', target: i, text: `The ${foe.name} dodges!` };
+    yield { type: 'miss', target: i, text: `${The(foe)} dodges!` };
     return;
   }
   const s = strike(h, foe, valor, b.rng);
   const { d, note } = hurtFoe(foe, s.damage);
-  const text = (s.valor ? `VALOR! ${d} damage to the ${foe.name}.` : s.crit ? `A heroic blow! ${d} damage to the ${foe.name}.`
-    : d ? `${d} damage to the ${foe.name}.` : `The ${foe.name} shrugs it off.`) + note;
+  const text = (s.valor ? `VALOR! ${d} damage to ${the(foe)}.` : s.crit ? `A heroic blow! ${d} damage to ${the(foe)}.`
+    : d ? `${d} damage to ${the(foe)}.` : `${The(foe)} shrugs it off.`) + note;
   yield { type: 'foeHurt', target: i, damage: d, base: s.base, valor: s.valor, big: s.valor || s.crit, text };
 }
 
@@ -262,15 +276,15 @@ function* heroSpell(b: Battle, id: SpellId, target: number | undefined): BattleS
       const i = b.foes.indexOf(f);
       yield { type: 'bolt', from: 'hero', to: i };
       const { d, note } = hurtFoe(f, ri(b.rng, SPELLS[id].dmg));
-      yield { type: 'foeHurt', target: i, damage: d, base: d, valor: false, big: false, fire: true, text: `${d} fire damage to the ${f.name}.${note}` };
+      yield { type: 'foeHurt', target: i, damage: d, base: d, valor: false, big: false, fire: true, text: `${d} fire damage to ${the(f)}.${note}` };
     }
   } else if (id === 'lull') {
     for (const f of living(b)) {
       const i = b.foes.indexOf(f);
       if (!f.warden && b.rng() < STATUS.lullChance) {
         f.sleep = ri(b.rng, STATUS.lullTurns);
-        yield { type: 'status', who: i, status: 'sleep', on: true, text: `The ${f.name} falls asleep.` };
-      } else yield { type: 'say', text: `The ${f.name} resists.` };
+        yield { type: 'status', who: i, status: 'sleep', on: true, text: `${The(f)} falls asleep.` };
+      } else yield { type: 'say', text: `${The(f)} resists.` };
     }
   } else yield { type: 'say', text: 'Nothing happens.' };
 }
@@ -294,27 +308,36 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
   if (f.freed || f.gone) return;
   if (f.sleep > 0) {
     f.sleep--;
-    yield f.sleep ? { type: 'say', text: `The ${f.name} is fast asleep.` } : { type: 'status', who: i, status: 'sleep', on: false, text: `The ${f.name} wakes up!` };
+    yield f.sleep ? { type: 'say', text: `${The(f)} is fast asleep.` } : { type: 'status', who: i, status: 'sleep', on: false, text: `${The(f)} wakes up!` };
     return;
   }
   if (t.brace) {
     f.turns++;
     if (f.turns % 2 === 1) {
       f.braced = true;
-      yield { type: 'status', who: i, status: 'brace', on: true, text: `The ${f.name} braces itself.` };
+      yield { type: 'status', who: i, status: 'brace', on: true, text: `${The(f)} braces itself.` };
       return;
     }
-    if (f.braced) { f.braced = false; yield { type: 'status', who: i, status: 'brace', on: false, text: `The ${f.name} lowers its guard.` }; }
+    if (f.braced) { f.braced = false; yield { type: 'status', who: i, status: 'brace', on: false, text: `${The(f)} lowers its guard.` }; }
+  }
+  if (f.big) {
+    f.beat++;
+    if (f.charged) { f.charged = false; yield* bigMove(b, f, f.big); return; }
+    if (f.beat % 3 === 2) {
+      f.charged = true;
+      yield { type: 'tell', foe: i, text: f.big.tell };
+      return;
+    }
   }
   yield { type: 'foeReady', foe: i };
   if (t.howl && b.foes.length < 3 && b.rng() < t.howl) {
     b.foes.push(makeFoe(f.id));
-    yield { type: 'say', text: `The ${f.name} howls!` };
+    yield { type: 'say', text: `${The(f)} howls!` };
     yield { type: 'join', foe: b.foes.length - 1, text: `Another ${f.name} joins the hunt!` };
     return;
   }
   if (t.spark && b.rng() < t.spark.chance) {
-    yield { type: 'cast', who: i, spell: 'spark', text: `The ${f.name} casts Spark!` };
+    yield { type: 'cast', who: i, spell: 'spark', text: `${The(f)} casts Spark!` };
     yield { type: 'bolt', from: i, to: 'hero' };
     const d = Math.min(h.hp, ri(b.rng, t.spark.dmg));
     h.hp -= d;
@@ -323,12 +346,12 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
   }
   if (t.hush && !b.hushed && b.rng() < t.hush) {
     b.hushed = true;
-    yield { type: 'cast', who: i, spell: 'hush', text: `The ${f.name} casts Hush!` };
+    yield { type: 'cast', who: i, spell: 'hush', text: `${The(f)} casts Hush!` };
     yield { type: 'status', who: 'hero', status: 'hush', on: true, text: `${h.name}'s spells are hushed!` };
     return;
   }
   if (t.spores && b.rng() < t.spores.chance) {
-    yield { type: 'say', text: `The ${f.name} puffs a cloud of spores!` };
+    yield { type: 'say', text: `${The(f)} puffs a cloud of spores!` };
     if (b.rng() < 0.5) {
       if (t.spores.effect === 'sleep') {
         b.heroSleep = STATUS.sleepTurns;
@@ -341,7 +364,7 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
     return;
   }
   for (let k = 0; k < (t.twice ? 2 : 1); k++) {
-    yield { type: 'say', text: k ? `The ${f.name} bites again!` : `The ${f.name} attacks!` };
+    yield { type: 'say', text: k ? `${The(f)} bites again!` : `${The(f)} attacks!` };
     const guard = (yield { type: 'foeStrike', foe: i }) === true;
     const { damage: d0, base } = blow(f, h, guard, b.rng);
     const d = Math.min(h.hp, d0);
@@ -351,7 +374,7 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
     if (d > 0 && t.drain) {
       const got = Math.min(f.maxHp - f.hp, Math.ceil(d * t.drain));
       f.hp += got;
-      if (got > 0) yield { type: 'heal', who: i, amount: got, text: `The ${f.name} drinks ${got} HP.` };
+      if (got > 0) yield { type: 'heal', who: i, amount: got, text: `${The(f)} drinks ${got} HP.` };
     }
     if (d > 0 && t.poison && !h.poisoned && b.rng() < t.poison) {
       h.poisoned = true;
@@ -361,9 +384,36 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
       const g = Math.min(h.gold, ri(b.rng, [3, 8]));
       h.gold -= g;
       f.gone = true;
-      yield { type: 'leave', foe: i, gold: g, text: `The ${f.name} snatches ${g} gold and flies off!` };
+      yield { type: 'leave', foe: i, gold: g, text: `${The(f)} snatches ${g} gold and flies off!` };
       return;
     }
+  }
+}
+
+/** A warden's big move, told a turn ahead. */
+function* bigMove(b: Battle, f: Foe, big: BigMove): BattleScript {
+  const i = b.foes.indexOf(f), h = b.hero;
+  yield { type: 'big', foe: i, text: big.name };
+  if (big.kind === 'blow') {
+    const guard = (yield { type: 'foeStrike', foe: i }) === true;
+    const base = Math.round(damage(f.atk, heroDef(h), b.rng) * (big.mult ?? 2));
+    const d = Math.min(h.hp, guard ? Math.floor(base / 2) : base);
+    h.hp -= d;
+    yield { type: 'heroHurt', damage: d, base, guarded: guard, text: guard ? `Guarded! ${h.name} takes only ${d}.` : `${h.name} takes ${d} damage!` };
+    return;
+  }
+  const d = Math.min(h.hp, ri(b.rng, big.dmg ?? [10, 10]));
+  h.hp -= d;
+  yield { type: 'heroHurt', damage: d, base: d, guarded: false, kind: big.kind === 'breath' ? 'fire' : undefined, text: `${h.name} takes ${d} damage!` };
+  if (h.hp <= 0) return;
+  if (big.kind === 'drain') {
+    const got = Math.min(f.maxHp - f.hp, d);
+    f.hp += got;
+    if (got > 0) yield { type: 'heal', who: i, amount: got, text: `${The(f)} drinks ${got} HP.` };
+  }
+  if (big.poison && !h.poisoned) {
+    h.poisoned = true;
+    yield { type: 'status', who: 'hero', status: 'poison', on: true, text: `${h.name} is poisoned!` };
   }
 }
 
@@ -372,7 +422,7 @@ function* sweep(b: Battle): BattleScript {
   for (const [i, f] of b.foes.entries()) {
     if (f.freed || f.gone || f.hp > 0) continue;
     f.freed = true;
-    yield { type: 'freed', foe: i, text: `The ${f.name} shakes off the Gloam and runs for home!` };
+    yield { type: 'freed', foe: i, text: `${The(f)} shakes off the Gloam and runs for home!` };
   }
 }
 

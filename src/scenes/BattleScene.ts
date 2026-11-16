@@ -116,13 +116,16 @@ export class BattleScene extends Phaser.Scene {
     void this.run();
   }
 
+  /** A foe's sprite: 2x, or 3x for a warden (standing on the same ground line). */
   private addFoe(id: CreatureId, x: number, i: number) {
-    return this.track(face(this.add.image(x, FOE_Y + (i % 2) * 8, creatureTexture(id)).setScale(2).setDepth(2), CREATURES[id].slot, false));
+    const big = 'big' in CREATURES[id], y = big ? FOE_Y - 8 : FOE_Y + (i % 2) * 8;
+    return this.track(face(this.add.image(x, y, creatureTexture(id)).setScale(big ? 3 : 2).setDepth(2), CREATURES[id].slot, false));
   }
 
   /** Gives a sprite a shadow and a sleep mark that follow it. */
   private track(img: Phaser.GameObjects.Image) {
-    this.shadows.set(img, this.add.ellipse(img.x, img.y + 16, 22, 4, 0x000000, 0.25).setDepth(1));
+    const half = img.displayHeight / 2;
+    this.shadows.set(img, this.add.ellipse(img.x, img.y + half, img.displayWidth * 0.7, 4, 0x000000, 0.25).setDepth(1));
     this.zzz.set(img, this.add.text(img.x + 10, img.y - 22, 'z', { fontFamily: FONT, fontSize: '8px', color: TEXT.gloam }).setDepth(3).setVisible(false));
     return img;
   }
@@ -214,7 +217,7 @@ export class BattleScene extends Phaser.Scene {
   /** Lays the foes out for however many there are now (a howl brings a third). */
   private relayout() {
     const xs = BATTLE.slots[this.foeImgs.length];
-    this.foeImgs.forEach((img, i) => this.tweens.add({ targets: img, x: xs[i], y: FOE_Y + (i % 2) * 8, duration: 300, ease: 'Quad.out' }));
+    this.foeImgs.forEach((img, i) => this.tweens.add({ targets: img, x: xs[i], y: img.scale > 2 ? FOE_Y - 8 : FOE_Y + (i % 2) * 8, duration: 300, ease: 'Quad.out' }));
   }
 
   private async show(e: BattleEvent): Promise<boolean | undefined> {
@@ -258,6 +261,25 @@ export class BattleScene extends Phaser.Scene {
         this.setRestTint(img, (img.getData('tint') as number | undefined) ?? null);
         img.setTintMode(Phaser.TintModes.MULTIPLY);
         await this.wait(120);
+        return undefined;
+      }
+      case 'tell': {
+        const img = this.foeImgs[e.foe];
+        this.say(e.text);
+        playSound(this, 'tell');
+        this.setRestTint(img, 0xffc070);
+        this.fx.burst(img.x, img.y, [COLORS.gold, COLORS.ember], [12, 30, 700]);
+        await this.wait(1100);
+        return undefined;
+      }
+      case 'big': {
+        const img = this.foeImgs[e.foe];
+        this.say(e.text);
+        playSound(this, 'roar');
+        this.setRestTint(img, null);
+        this.fx.flash(0.35);
+        this.fx.shake(3);
+        await this.wait(700);
         return undefined;
       }
       case 'foeStrike': {

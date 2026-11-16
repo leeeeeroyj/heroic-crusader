@@ -1,15 +1,35 @@
 // The one save slot, in localStorage. Every access is guarded: private windows and blocked storage throw, and a
 // save from another version, or one edited by hand, is treated as no save at all.
 import { GEAR, ITEMS, LEVELS, SAVE, type GearId, type ItemId } from './config';
+import { DUNGEONS, parseFloor } from './data/dungeons';
 import { OVERWORLD, TOWNS, TOWN_H, TOWN_W } from './data/maps';
 import { maxHp, maxMp, type Journey } from './state';
 
 const isInt = (n: unknown, lo: number, hi: number): n is number => Number.isInteger(n) && (n as number) >= lo && (n as number) <= hi;
 const isObj = (o: unknown): o is Record<string, unknown> => typeof o === 'object' && o !== null && !Array.isArray(o);
 
+/** A version 1 save (before dungeons) gains the dungeon fields, empty. */
+const UPGRADE: Record<number, (j: Record<string, unknown>) => void> = {
+  1: (j) => { j.opened = []; j.torch = false; j.glow = 0; },
+};
+
+/** The width and height of an area's map, or null if there's no such area. */
+function areaSize(area: string): [number, number] | null {
+  if (area === 'world') return [OVERWORLD[0].length, OVERWORLD.length];
+  if (TOWNS[area]) return [TOWN_W, TOWN_H];
+  const f = parseFloor(area);
+  if (!f) return null;
+  const rows = DUNGEONS[f.site].floors[f.floor];
+  return [rows[0].length, rows.length];
+}
+
 /** Checks a parsed save's journey field by field; returns a clean copy or null. */
 export function parseJourney(d: unknown): Journey | null {
-  if (!isObj(d) || d.v !== SAVE.version || !isObj(d.journey)) return null;
+  if (!isObj(d) || !isObj(d.journey)) return null;
+  if (d.v !== SAVE.version) {
+    if (typeof d.v !== 'number' || !UPGRADE[d.v]) return null;
+    for (let v = d.v; v < SAVE.version; v++) UPGRADE[v](d.journey);
+  }
   const j = d.journey, h = j.hero;
   if (!isObj(h) || typeof h.name !== 'string' || !/^[A-Z ]{1,8}$/.test(h.name)) return null;
   if (!isInt(h.lv, 1, LEVELS.length) || !isInt(h.xp, 0, 1e7) || !isInt(h.gold, 0, 1e7)) return null;
@@ -28,10 +48,18 @@ export function parseJourney(d: unknown): Journey | null {
     items[id as ItemId] = n;
   }
   if (!Array.isArray(j.lit) || j.lit.length !== 4 || !j.lit.every((b) => typeof b === 'boolean')) return null;
-  if (typeof j.area !== 'string' || (j.area !== 'world' && !TOWNS[j.area])) return null;
-  const w = j.area === 'world' ? OVERWORLD[0].length : TOWN_W, hgt = j.area === 'world' ? OVERWORLD.length : TOWN_H;
+  const size = typeof j.area === 'string' ? areaSize(j.area) : null;
+  if (!size) return null;
+  const [w, hgt] = size;
   if (j.at !== null && !(isObj(j.at) && isInt(j.at.x, 0, w - 1) && isInt(j.at.y, 0, hgt - 1))) return null;
-  if (!isInt(j.sinceFight, 0, 1e7) || !isInt(j.ward, 0, 1e4)) return null;
+  if (!isInt(j.sinceFight, 0, 1e7) || !isInt(j.ward, 0, 1e4) || !isInt(j.glow, 0, 1e4) || typeof j.torch !== 'boolean') return null;
+  // Opened chests and doors: 'area:x,y' on a real floor, each at most once.
+  if (!Array.isArray(j.opened) || j.opened.length > 200 || new Set(j.opened).size !== j.opened.length) return null;
+  for (const o of j.opened) {
+    const m = typeof o === 'string' ? /^([1-4]\.\d):(\d{1,2}),(\d{1,2})$/.exec(o) : null;
+    const s = m && parseFloor(m[1]) ? areaSize(m[1]) : null;
+    if (!m || !s || Number(m[2]) >= s[0] || Number(m[3]) >= s[1]) return null;
+  }
   // Same field order as newJourney(), so a loaded journey serialises exactly as it was saved.
   const hero: Journey['hero'] = {
     name: h.name, lv: h.lv, hp: 0, mp: 0, xp: h.xp, gold: h.gold, home: h.home, gear, items, poisoned: h.poisoned,
@@ -40,7 +68,10 @@ export function parseJourney(d: unknown): Journey | null {
   hero.hp = h.hp;
   hero.mp = h.mp;
   const at = j.at === null ? null : { x: (j.at as { x: number }).x, y: (j.at as { y: number }).y };
-  return { hero, lit: [...(j.lit as boolean[])], area: j.area, at, sinceFight: j.sinceFight, ward: j.ward };
+  return {
+    hero, lit: [...(j.lit as boolean[])], area: j.area as string, at, sinceFight: j.sinceFight, ward: j.ward,
+    opened: [...(j.opened as string[])], torch: j.torch, glow: j.glow,
+  };
 }
 
 export function writeSave(j: Journey): boolean {

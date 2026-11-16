@@ -102,7 +102,8 @@ export class TalkScene extends Phaser.Scene {
     const fill = (s: string) => s.replace('{price}', String(INN[town] ?? 0));
     switch (p.role) {
       case 'queen': {
-        const lit = this.journey.lit.filter(Boolean).length;
+        // Her charge is the first beacon still cold (or the Hollow, once all four burn).
+        const cold = this.journey.lit.indexOf(false), lit = cold < 0 ? 4 : cold;
         const next = h.lv < LEVELS.length ? `You need ${toNext(h)} more Valor to reach LV ${h.lv + 1}.` : 'No knight of the realm stands stronger than you.';
         this.say([`Welcome, ${h.name}. ${QUEST[lit]}`, next]);
         break;

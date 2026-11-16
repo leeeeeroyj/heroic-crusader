@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { COLORS, FONT, HUD_SCALE, ITEMS, SPELLS, TEXT, type ItemId, type SpellId } from '../config';
 import { Controls } from '../controls';
+import { parseFloor } from '../data/dungeons';
 import { castInField, fieldItems, fieldSpells, useInField } from '../field';
 import { playSound, toggleMute } from '../sfx';
 import { STATE, count, maxHp, maxMp, toNext, type Journey } from '../state';
@@ -84,9 +85,10 @@ export class MenuScene extends Phaser.Scene {
       else this.close('title');
       return;
     }
-    const r = row.spell ? castInField(j, row.spell, this.rand) : useInField(j, row.item!, this.rand);
+    const dark = parseFloor(j.area) !== null;
+    const r = row.spell ? castInField(j, row.spell, this.rand, dark) : useInField(j, row.item!, this.rand, dark);
     this.note = r.text;
-    playSound(this, !r.ok ? 'bump' : row.spell === 'homeward' || row.spell === 'ward' || row.item === 'incense' ? 'cast' : 'heal');
+    playSound(this, !r.ok ? 'bump' : row.spell === 'homeward' || row.spell === 'ward' || row.spell === 'glow' || row.item === 'incense' || row.item === 'torch' ? 'cast' : 'heal');
     if (r.home) { this.close('home'); return; }
     // Keep the cursor on the list if an item ran out.
     this.cursor = Math.min(this.cursor, Math.max(0, this.rowsFor().length - 1));

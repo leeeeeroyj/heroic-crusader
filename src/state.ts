@@ -1,5 +1,5 @@
 // The journey's state: the hero and the beacons. Pure data, kept in the game registry under STATE.
-import { GEAR, HERO, ITEMS, LEVELS, SPELLS, START_GEAR, START_ITEMS, STATUS, type GearId, type ItemId, type SpellId } from './config';
+import { GEAR, HERO, ITEMS, LEVELS, LIGHT, SPELLS, START_GEAR, START_ITEMS, STATUS, type GearId, type ItemId, type SpellId } from './config';
 import { TOWNS } from './data/maps';
 
 export const STATE = 'journey';
@@ -25,7 +25,7 @@ export interface Journey {
   hero: Hero;
   /** One per beacon: Meadow, Marsh, Snow, Ruins. */
   lit: boolean[];
-  /** Where the hero is: 'world' for the overworld, or a town's site key. */
+  /** Where the hero is: 'world' for the overworld, a town's site key, or a dungeon floor ('2.1'). */
   area: string;
   /** Tile position in that area; null means the overworld's Brightkeep tile (a new journey). */
   at: { x: number; y: number } | null;
@@ -33,6 +33,12 @@ export interface Journey {
   sinceFight: number;
   /** Steps of Ward left: weaker creatures leave the hero alone. */
   ward: number;
+  /** Chests and locked doors opened, as `area:x,y`. */
+  opened: string[];
+  /** A torch burns until the hero leaves the dungeon. */
+  torch: boolean;
+  /** Steps of Glow left. */
+  glow: number;
 }
 
 export const levelRow = (lv: number) => LEVELS[Math.max(1, Math.min(LEVELS.length, lv)) - 1];
@@ -71,7 +77,7 @@ export function newJourney(): Journey {
   };
   hero.hp = maxHp(hero);
   hero.mp = maxMp(hero);
-  return { hero, lit: [false, false, false, false], area: 'world', at: null, sinceFight: 0, ward: 0 };
+  return { hero, lit: [false, false, false, false], area: 'world', at: null, sinceFight: 0, ward: 0, opened: [], torch: false, glow: 0 };
 }
 
 /** Puts the hero in their home town, before the shrine keeper (Homeward, and waking after a fall). */
@@ -94,9 +100,16 @@ export function wakeAtShrine(j: Journey): number {
   return lost;
 }
 
-/** One step on the map: poison bites (never below 1 HP) and Ward wears off. Returns the HP lost. */
+/** How far the hero can see in the dark, in tiles: bare, by torch, or by Glow (fading as its steps run out). */
+export function lightRadius(j: Journey): number {
+  const glow = j.glow > 0 ? LIGHT.torch + Math.ceil(((LIGHT.glow - LIGHT.torch) * j.glow) / LIGHT.glowSteps) : 0;
+  return Math.max(LIGHT.dark, j.torch ? LIGHT.torch : 0, glow);
+}
+
+/** One step on the map: poison bites (never below 1 HP), and Ward and Glow wear off. Returns the HP lost. */
 export function stepEffects(j: Journey): number {
   if (j.ward > 0) j.ward--;
+  if (j.glow > 0) j.glow--;
   const h = j.hero;
   if (!h.poisoned || h.hp <= 1) return 0;
   const lost = Math.min(STATUS.poisonStep, h.hp - 1);

@@ -46,8 +46,8 @@ const MESSAGE = { x: 176, y: 344, w: 480, h: 60 };
 const TOUCH_SOON = 'TOUCH CONTROLS ARE ON THE WAY: USE A KEYBOARD OR CONTROLLER FOR NOW';
 const HINTS: Record<HudState['mode'], Record<Device, string>> = {
   walk: {
-    kbm: 'ARROWS / WASD WALK  ·  Z TALK  ·  ESC MENU  ·  M SOUND',
-    pad: 'D-PAD / STICK WALK  ·  A TALK  ·  START MENU  ·  BACK SOUND',
+    kbm: 'ARROWS / WASD WALK  ·  Z TALK, OPEN  ·  ESC MENU  ·  M SOUND',
+    pad: 'D-PAD / STICK WALK  ·  A TALK, OPEN  ·  START MENU  ·  BACK SOUND',
     touch: TOUCH_SOON,
   },
   talk: {
@@ -143,8 +143,11 @@ export class HudScene extends Phaser.Scene {
     // Message box: below the hero, above the hint strip.
     if (s.message && s.mode === 'walk') {
       const a = Math.min(1, s.message.t * 3);
-      drawPanel(g, MESSAGE.x, MESSAGE.y, MESSAGE.w, MESSAGE.h, 0.92 * a);
       this.messageText.setText(s.message.text).setAlpha(a);
+      // A longer message grows the box upward, keeping its bottom edge above the hint strip.
+      const h = Math.max(MESSAGE.h, Math.ceil(this.messageText.height) + 24), y = MESSAGE.y + MESSAGE.h - h;
+      drawPanel(g, MESSAGE.x, y, MESSAGE.w, h, 0.92 * a);
+      this.messageText.setY(y + 12);
     } else this.messageText.setText('');
   }
 

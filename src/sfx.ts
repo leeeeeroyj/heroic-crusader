@@ -49,6 +49,11 @@ export const SOUNDS = {
   howl: { wave: 'saw', freq: 300, slide: 0.8, sustain: 0.45, decay: 0.25, vibrato: [6, 0.04], smooth: 0.4, volume: 0.25 },
   open: { wave: 'square', freq: 523, steps: [0, 7], sustain: 0.06, decay: 0.05, duty: 0.25, volume: 0.18 },
   coin: { wave: 'square', freq: 988, steps: [0, 5], sustain: 0.08, decay: 0.12, duty: 0.5, volume: 0.2 },
+  tell: { wave: 'saw', freq: 110, slide: 0.6, sustain: 0.5, decay: 0.2, vibrato: [9, 0.05], smooth: 0.5, volume: 0.25 },
+  roar: { wave: 'noise', freq: 600, slide: -1.2, sustain: 0.35, decay: 0.3, smooth: 0.7, volume: 0.45 },
+  beacon: { wave: 'triangle', freq: 392, steps: [0, 4, 7, 12, 16, 19, 24], sustain: 1.1, decay: 0.5, vibrato: [5, 0.01], volume: 0.42 },
+  unlock: { wave: 'square', freq: 330, steps: [0, 12, 7], sustain: 0.12, decay: 0.1, duty: 0.25, volume: 0.22 },
+  stairs: { wave: 'triangle', freq: 300, steps: [0, -3, -5, -8], sustain: 0.24, decay: 0.12, volume: 0.28 },
 } satisfies Record<string, Voice>;
 
 export type SoundName = keyof typeof SOUNDS;

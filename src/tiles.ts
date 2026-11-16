@@ -18,7 +18,59 @@ export const PAL = {
 
 const LINKS = '=BCVFH1234';
 
+/** Dungeon colours by ground: walls, their top edge, floor, its seams, and a fleck (lichen, rime, bones). */
+const DEEP: Partial<Record<Ground, { wall: string; wall2: string; top: string; floor: string; seam: string; fleck: string }>> = {
+  barrow: { wall: '#4a3a2c', wall2: '#33281e', top: '#6b5640', floor: '#6e5c48', seam: '#5a4a3a', fleck: '#cfc6b0' },
+  belfry: { wall: '#3e5250', wall2: '#2b3a39', top: '#5d7a6a', floor: '#55665c', seam: '#45544c', fleck: '#7fae5e' },
+  spire: { wall: '#4e6488', wall2: '#36486a', top: '#a9c4e8', floor: '#7d90b0', seam: '#677a9a', fleck: '#e8eef8' },
+  keep: { wall: '#5a4650', wall2: '#3e3038', top: '#7d6670', floor: '#6c5a5e', seam: '#5a4a4e', fleck: '#a8323a' },
+};
+
+function paintDungeon(g: CanvasRenderingContext2D, map: WorldMap, t: string, x: number, y: number) {
+  const X = x * TILE, Y = y * TILE, r = rng(x * 7919 + y * 104729 + 31), P = DEEP[map.ground!] ?? DEEP.barrow!;
+  const f = (c: string, a: number, b: number, w: number, h: number) => { g.fillStyle = c; g.fillRect(X + a, Y + b, w, h); };
+  const floor = () => {
+    f(P.floor, 0, 0, 16, 16);
+    f(P.seam, 0, 7, 16, 1); f(P.seam, 0, 15, 16, 1); f(P.seam, (y % 2) * 8 + 3, 0, 1, 7); f(P.seam, (y % 2) * 8 + 11, 8, 1, 7);
+  };
+  const wallAt = (wx: number, wy: number) => '#*'.includes(tileAt(map, wx, wy));
+  switch (t) {
+    case '#': case '*': {
+      const ice = t === '*';
+      f(ice ? '#2a3a5c' : P.wall2, 0, 0, 16, 16);
+      // Ice: dark blue blocks with pale glints. Stone: courses of brick.
+      if (ice) { f('#3e5784', 1, 1, 14, 6); f('#3e5784', 1, 8, 14, 6); f('#8fb0dc', 2 + Math.floor(r() * 9), 2, 1, 4); f('#cfe0f6', 3 + Math.floor(r() * 9), 9, 2, 1); }
+      else for (let b = 0; b < 16; b += 5) { f(P.wall, 0, b, 16, 4); f(P.wall2, (b / 5) % 2 ? 4 : 10, b, 1, 4); }
+      // A lit top edge where the wall meets open floor below it.
+      if (!wallAt(x, y + 1)) { f(ice ? '#a9c4e8' : P.top, 0, 13, 16, 3); f(ice ? '#2a3a5c' : P.wall2, 0, 15, 16, 1); }
+      break;
+    }
+    case ',': floor(); for (let i = 0; i < 3; i++) f(P.fleck, Math.floor(r() * 13), Math.floor(r() * 13), 2 + Math.floor(r() * 2), 1); break;
+    case '<': case '>': {
+      floor();
+      // Steps: up toward the light, down into the dark.
+      const up = t === '<';
+      for (let i = 0; i < 4; i++) {
+        const shade = up ? 4 - i : i + 1;
+        f(['#d8d0c0', '#b0a690', '#8a806c', '#625a4c', '#3a342c'][shade], 2, 2 + i * 3, 12, 3);
+      }
+      f(P.wall2, 1, 1, 1, 14); f(P.wall2, 14, 1, 1, 14);
+      break;
+    }
+    case '|':
+      floor();
+      f(PAL.wood2, 2, 0, 12, 16); f(PAL.wood, 3, 1, 10, 15);
+      f(PAL.iron, 2, 3, 12, 2); f(PAL.iron, 2, 11, 12, 2); f(PAL.gilt, 7, 7, 2, 3); f(PAL.door, 7, 9, 2, 1);
+      break;
+    case '~': f('#1d3550', 0, 0, 16, 16); f('#2c4f75', Math.floor(r() * 10), 4 + Math.floor(r() * 8), 5, 1); f('#2c4f75', Math.floor(r() * 10), Math.floor(r() * 12), 3, 1); break;
+    case 'B': f('#1d3550', 0, 0, 16, 16); f(PAL.wood2, 1, 0, 14, 16); for (let b = 1; b < 16; b += 4) f(PAL.wood, 1, b, 14, 3); break;
+    case '+': floor(); f(P.wall2, 3, 3, 10, 13); f(P.wall, 4, 2, 8, 13); f(P.top, 4, 2, 8, 2); f(P.wall2, 3, 14, 10, 2); break;
+    default: floor();
+  }
+}
+
 function paintTile(g: CanvasRenderingContext2D, map: WorldMap, t: string, x: number, y: number) {
+  if (map.kind === 'dungeon') { paintDungeon(g, map, t, x, y); return; }
   const X = x * TILE, Y = y * TILE, r = rng(x * 7919 + y * 104729 + 17);
   const f = (c: string, a: number, b: number, w: number, h: number) => { g.fillStyle = c; g.fillRect(X + a, Y + b, w, h); };
   const dots = (c: string, n: number, w = 1, h = 1) => { for (let i = 0; i < n; i++) f(c, Math.floor(r() * (16 - w)), Math.floor(r() * (16 - h)), w, h); };
@@ -139,10 +191,14 @@ const BACKS: Record<Ground, { sky: [string, string, string]; far: string; near: 
   marsh: { sky: ['#7f9b9a', '#93aba5', '#a9bdb0'], far: '#5b6e4a', near: '#4d5f38', ground: '#3c4d2e', fleck: '#9aac52' },
   snow: { sky: ['#9fb6d9', '#b8cae5', '#d3def0'], far: '#f2f6fc', near: '#d9e2f1', ground: '#e8eef8', fleck: '#c9d5ea' },
   ruins: { sky: ['#c9a27a', '#d8b48a', '#e6c89c'], far: '#8a7f6c', near: '#9b8f7a', ground: '#7d725f', fleck: '#b8b2a4' },
-  dungeon: { sky: ['#141019', '#1b1622', '#211b2a'], far: '#2b2433', near: '#352c3f', ground: '#2a2230', fleck: '#4a4256' },
+  barrow: { sky: ['#140f0c', '#1c1510', '#241b14'], far: '#33271c', near: '#3f3022', ground: '#2e2319', fleck: '#5c4a36' },
+  belfry: { sky: ['#0c1416', '#111c1e', '#172527'], far: '#1f3232', near: '#2a403c', ground: '#1d2f2c', fleck: '#4f7a5a' },
+  spire: { sky: ['#0e1424', '#141c30', '#1b253c'], far: '#2c3a58', near: '#3b4d70', ground: '#2a3654', fleck: '#9fb6d9' },
+  keep: { sky: ['#140c10', '#1c1116', '#24161c'], far: '#352630', near: '#43303a', ground: '#2e2028', fleck: '#7a5260' },
   hollow: { sky: ['#0d0716', '#160c24', '#1f1033'], far: '#2a1a40', near: '#3a2458', ground: '#24163a', fleck: '#9d7be0' },
 };
 export const BACKDROP_H = 150;
+const UNDERGROUND = new Set<Ground>(['barrow', 'belfry', 'spire', 'keep', 'hollow']);
 
 /** A battle backdrop, WIDTH x BACKDROP_H. Under a cold beacon it's drawn grey and violet like the map. */
 export function bakeBackdrop(kind: Ground, dim: boolean): HTMLCanvasElement {
@@ -166,7 +222,7 @@ export function bakeBackdrop(kind: Ground, dim: boolean): HTMLCanvasElement {
     g.fillStyle = '#c2bcae'; g.fillRect(x, 118 - hh, 10, hh);
     g.fillStyle = '#7d725f'; g.fillRect(x, 118 - hh, 10, 2);
   }
-  if (kind === 'dungeon' || kind === 'hollow') {
+  if (UNDERGROUND.has(kind)) {
     g.fillStyle = '#0c0a10';
     for (let x = 0; x < W; x += 14) { const hh = 6 + Math.floor(r() * 18); g.fillRect(x, 0, 6, hh); g.fillRect(x + 2, hh, 2, 4); }
   }

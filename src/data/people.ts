@@ -28,7 +28,7 @@ const shops = (inn: string, smith: Stock, grocer: Stock): Person[] => [
   { id: 'innkeeper', sprite: 'merchant', x: 4, y: 3, role: 'inn', lines: [inn] },
   { id: 'keeper', sprite: 'healer', x: 21, y: 3, role: 'shrine', lines: ['Peace be with you. Shall I record your journey here?'] },
   { id: 'smith', sprite: 'merchant', x: 4, y: 11, role: 'smith', lines: ['Steel for the road! What will it be?'], stock: smith },
-  { id: 'grocer', sprite: 'merchant', x: 21, y: 11, role: 'grocer', lines: ['Herbs and sundries. Take a look.'], stock: grocer },
+  { id: 'grocer', sprite: 'merchant', x: 21, y: 11, role: 'grocer', lines: ['Herbs and sundries. Take a torch if you are bound below ground: it is black as pitch down there.'], stock: grocer },
 ];
 
 export const PEOPLE: Record<string, Person[]> = {
@@ -55,11 +55,11 @@ export const PEOPLE: Record<string, Person[]> = {
   ],
 };
 
-/** The queen's charge, by how many beacons burn. */
+/** The queen's charge: the first beacon still cold, in order (4 when all burn). */
 export const QUEST = [
   'The four beacons are cold, and the Gloam spreads. Begin in the Thornwood, west of here, where the first beacon stands in its barrow.',
-  'The meadow beacon burns! Next, the Drowned Belfry in the far western marsh. Fenbridge lies on the way.',
-  'Two beacons light the land. The third is Rime Spire, in the snowfields to the north. Frostholm can shelter you.',
+  'The Thornwood beacon burns! Next, the Drowned Belfry in the far western marsh. Fenbridge lies on the way.',
+  'The marsh is bright again. Now Rime Spire, in the snowfields to the north. Frostholm can shelter you.',
   'Only one remains: Sunder Keep, among the eastern ruins. The hermit there knows its doors.',
   'All four burn, and the Gloam\'s wall has fallen. Its Hollow lies in the north-east. Go, and end this.',
 ];

@@ -1,20 +1,25 @@
 // Grid rules for maps. Pure: no Phaser, so tests import it straight from the dev server.
 import { ENCOUNTER, POOLS, type CreatureId, type Ground } from './config';
+import { DUNGEONS, floorArea } from './data/dungeons';
 import { HOLLOW_CORNER, OVERWORLD, SITES, TERRAIN_REGION, TOWNS } from './data/maps';
 
 export interface Point { x: number; y: number }
 
 export interface WorldMap {
-  /** The overworld, or a town (no fights; walk out of the bottom to leave). */
-  kind: 'world' | 'town';
+  /** The overworld, a town (no fights; walk out of the bottom to leave) or a dungeon floor (dark). */
+  kind: 'world' | 'town' | 'dungeon';
   w: number;
   h: number;
   /** grid[y][x]: one character per tile. */
   grid: string[][];
   /** Where each site character sits. */
   sites: Record<string, Point>;
-  /** Region per tile: 0-3 for the beacons, -1 for the Hollow's corner. */
+  /** Region per tile: 0-3 for the beacons, -1 for the Hollow's corner, -2 underground (never greyed). */
   region: number[][];
+  /** Dungeon floors: the dungeon's site key, the floor, and its battle ground. */
+  site?: string;
+  floor?: number;
+  ground?: Ground;
 }
 
 /** Seeded random numbers (mulberry32). */
@@ -65,8 +70,48 @@ export function buildTown(key: string): WorldMap {
   return { kind: 'town', w: grid[0].length, h: grid.length, grid, sites: {}, region: grid.map((r) => r.map(() => t.region)) };
 }
 
+/**
+ * Builds one dungeon floor. `opened` lists the chests and doors already opened (as `area:x,y`): they become floor.
+ * The warden's tile becomes floor too; its spot is kept in `sites.W` (the scene stands the warden there until the
+ * beacon burns). `sites` also holds the stairs, '<' and '>'.
+ */
+export function buildDungeon(site: string, floor: number, opened: readonly string[] = []): WorldMap {
+  const d = DUNGEONS[site], area = floorArea(site, floor), grid = d.floors[floor].map((r) => r.split(''));
+  const sites: Record<string, Point> = {};
+  grid.forEach((row, y) => row.forEach((t, x) => {
+    if ('<>W'.includes(t)) sites[t] = { x, y };
+    if (t === 'W' || ('$|'.includes(t) && opened.includes(`${area}:${x},${y}`))) row[x] = '.';
+  }));
+  return { kind: 'dungeon', w: grid[0].length, h: grid.length, grid, sites, region: grid.map((r) => r.map(() => -2)), site, floor, ground: d.ground };
+}
+
+/** The chests on a dungeon floor, in reading order, with what each holds; opened ones are left out. */
+export function chestsOn(map: WorldMap, opened: readonly string[]) {
+  if (map.kind !== 'dungeon') return [];
+  const d = DUNGEONS[map.site!], area = floorArea(map.site!, map.floor!), out: Array<{ x: number; y: number; id: string; loot: (typeof d.loot)[number][number] }> = [];
+  let i = 0;
+  d.floors[map.floor!].forEach((row, y) => row.split('').forEach((t, x) => {
+    if (t !== '$') return;
+    const id = `${area}:${x},${y}`;
+    if (!opened.includes(id)) out.push({ x, y, id, loot: d.loot[map.floor!][i] });
+    i++;
+  }));
+  return out;
+}
+
+/** Where the hero stands on arriving by a stairway: the first open tile beside it (below, above, right, left). */
+export function besideStairs(map: WorldMap, stairs: Point): Point {
+  for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+    const x = stairs.x + dx, y = stairs.y + dy;
+    if ('.,B'.includes(tileAt(map, x, y))) return { x, y };
+  }
+  return stairs;
+}
+
 /** Town ground you can walk on; everything else (walls, counters, roofs, trees, water, furniture) blocks. */
 const TOWN_WALK = '.,*mofcB';
+/** Dungeon floor, stairs and planks; walls, water, pillars, chests, locked doors and the brazier block. */
+const DUNGEON_WALK = '.,<>B';
 
 export const tileAt = (map: WorldMap, x: number, y: number) => map.grid[y]?.[x] ?? 'M';
 
@@ -74,6 +119,7 @@ export const tileAt = (map: WorldMap, x: number, y: number) => map.grid[y]?.[x] 
 export function walkable(map: WorldMap, x: number, y: number, litCount: number) {
   const t = tileAt(map, x, y);
   if (map.kind === 'town') return TOWN_WALK.includes(t);
+  if (map.kind === 'dungeon') return DUNGEON_WALK.includes(t);
   if (t === 'x') return litCount >= 4;
   return t !== 'M' && t !== '~';
 }
@@ -81,6 +127,7 @@ export function walkable(map: WorldMap, x: number, y: number, litCount: number) 
 /** Whether a tile shows as lit: its region's beacon burns (the Hollow's corner needs all four). */
 export function isLit(map: WorldMap, x: number, y: number, lit: readonly boolean[]) {
   const r = map.region[y]?.[x] ?? 0;
+  if (r === -2) return true;
   return r === -1 ? lit.every(Boolean) : Boolean(lit[r]);
 }
 
@@ -112,12 +159,17 @@ const TILE_GROUND: Record<string, Ground> = { m: 'marsh', '*': 'snow', r: 'ruins
  * so danger rises as the hero steps onto marsh, snow, hills and rubble.
  */
 export function groundAt(map: WorldMap, x: number, y: number): Ground {
+  if (map.ground) return map.ground;
   return TILE_GROUND[tileAt(map, x, y)] ?? 'meadow';
 }
 
-/** Chance of a fight on this tile per step: none on sites or in the Hollow's corner, a third less where the beacon burns. */
+/**
+ * Chance of a fight on this tile per step: none in towns, on sites or in the Hollow's corner, a third less where the
+ * beacon burns; dungeon floors have their own odds (none on the stairs).
+ */
 export function encounterOdds(map: WorldMap, x: number, y: number, lit: readonly boolean[]): number {
   if (map.kind === 'town') return 0;
+  if (map.kind === 'dungeon') return '.,'.includes(tileAt(map, x, y)) ? ENCOUNTER.dungeon : 0;
   const odds = ENCOUNTER.odds[tileAt(map, x, y)] ?? 0;
   const r = map.region[y]?.[x] ?? 0;
   if (r < 0) return 0;
