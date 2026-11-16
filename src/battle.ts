@@ -1,7 +1,7 @@
 // Battle rules. Pure: no Phaser, so tests and the balance probe import it straight from the dev server.
 // A battle is played as a generator of events. The scene plays each one back; the two ring events (the hero's strike
 // and a foe's blow) wait for an answer, whether the player pressed on the ring.
-import { BATTLE, CREATURES, ITEMS, LEVELS, SPELLS, STATUS, type BigMove, type CreatureDef, type CreatureId, type Ground, type ItemId, type SpellId, type Traits } from './config';
+import { BATTLE, CREATURES, GLOAM_UNMASKED, ITEMS, LEVELS, SPELLS, STATUS, type BigMove, type CreatureDef, type CreatureId, type Ground, type ItemId, type SpellId, type Traits } from './config';
 import { count, heal, heroAgi, heroAtk, heroDef, maxHp, maxMp, takeItem, toNext, type Hero } from './state';
 
 export type Rng = () => number;
@@ -34,6 +34,10 @@ export interface Foe {
   big: BigMove | null;
   beat: number;
   charged: boolean;
+  /** The Gloam, masked (copying spells) until half its HP is gone; then `move` steps through its stolen moves. */
+  gloam: boolean;
+  masked: boolean;
+  move: number;
 }
 
 export interface Battle {
@@ -48,6 +52,8 @@ export interface Battle {
   heroSleep: number;
   /** Hushed: no spells for the rest of the fight. */
   hushed: boolean;
+  /** The hero's last spell, until the masked Gloam copies it. */
+  lastSpell: SpellId | null;
 }
 
 /** The hero, or a foe by its index. */
@@ -74,6 +80,8 @@ export type BattleEvent =
   | { type: 'tell'; foe: number; text: string }
   /** The big move lands now (its damage follows as heroHurt). */
   | { type: 'big'; foe: number; text: string }
+  /** The Gloam drops its mask and grows. */
+  | { type: 'unmask'; foe: number; text: string }
   /** A foe lunges at the hero; answer true if the player pressed on the ring. */
   | { type: 'foeStrike'; foe: number }
   /** `base` is the damage before a guard. */
@@ -99,7 +107,8 @@ export function makeFoe(id: CreatureId): Foe {
   const c: CreatureDef = CREATURES[id];
   return {
     id, name: c.name, hp: c.hp, maxHp: c.hp, atk: c.atk, def: c.def, agi: c.agi, xp: c.xp, gold: c.gold, traits: c.traits ?? {},
-    freed: false, gone: false, sleep: 0, braced: false, turns: 0, warden: !!c.big, big: c.big ?? null, beat: 0, charged: false,
+    freed: false, gone: false, sleep: 0, braced: false, turns: 0, warden: !!(c.big || c.gloam), big: c.big ?? null, beat: 0, charged: false,
+    gloam: !!c.gloam, masked: !!c.gloam, move: 0,
   };
 }
 export const makeFoes = (ids: readonly CreatureId[]) => ids.map(makeFoe);
@@ -108,7 +117,7 @@ export function newBattle(hero: Hero, ids: readonly CreatureId[], ground: Ground
   const foes = makeFoes(ids);
   // Bracers start on a random beat.
   for (const f of foes) if (f.traits.brace) f.turns = rng() < 0.5 ? 0 : 1;
-  return { hero, foes, ground, dim, rng, outcome: null, heroSleep: 0, hushed: false };
+  return { hero, foes, ground, dim, rng, outcome: null, heroSleep: 0, hushed: false, lastSpell: null };
 }
 
 /** Foes still in the fight. */
@@ -216,6 +225,7 @@ export function* round(b: Battle, action: Action): BattleScript {
     }
     yield { type: 'say', text: "Cut off! You can't escape." };
   }
+  for (const f of living(b)) if (f.gloam && f.masked && f.hp > 0 && f.hp <= f.maxHp / 2) yield* unmask(b, f);
   yield* sweep(b);
   if (!living(b).length) { yield* victory(b); return; }
   for (const f of turnOrder(b)) {
@@ -266,6 +276,7 @@ function* heroSpell(b: Battle, id: SpellId, target: number | undefined): BattleS
   if (b.hushed) { yield { type: 'say', text: `${h.name} tries to cast ${sp.name}, but the words won't come!` }; return; }
   if (h.mp < sp.mp) { yield { type: 'say', text: `Not enough MP for ${sp.name}.` }; return; }
   h.mp -= sp.mp;
+  b.lastSpell = id;
   yield { type: 'cast', who: 'hero', spell: id, text: `${h.name} casts ${sp.name}!` };
   if (id === 'mend' || id === 'restore') {
     const got = heal(h, ri(b.rng, SPELLS[id].heal));
@@ -319,6 +330,12 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
       return;
     }
     if (f.braced) { f.braced = false; yield { type: 'status', who: i, status: 'brace', on: false, text: `${The(f)} lowers its guard.` }; }
+  }
+  if (f.gloam && f.masked && b.lastSpell) {
+    const id = b.lastSpell;
+    b.lastSpell = null;
+    yield* mirror(b, f, id);
+    return;
   }
   if (f.big) {
     f.beat++;
@@ -390,9 +407,41 @@ export function* foeTurn(b: Battle, f: Foe): BattleScript {
   }
 }
 
-/** A warden's big move, told a turn ahead. */
+/** The masked Gloam turns the hero's own spell back on them. */
+function* mirror(b: Battle, f: Foe, id: SpellId): BattleScript {
+  const i = b.foes.indexOf(f), h = b.hero, sp = SPELLS[id];
+  yield { type: 'cast', who: i, spell: id, text: `${The(f)} casts ${sp.name}, mocking you!` };
+  if (id === 'mend' || id === 'restore') {
+    const got = Math.min(f.maxHp - f.hp, ri(b.rng, SPELLS[id].heal));
+    f.hp += got;
+    yield { type: 'heal', who: i, amount: got, text: `${The(f)} recovers ${got} HP.` };
+  } else if (id === 'spark' || id === 'flare') {
+    yield { type: 'bolt', from: i, to: 'hero' };
+    const d = Math.min(h.hp, ri(b.rng, SPELLS[id].dmg));
+    h.hp -= d;
+    yield { type: 'heroHurt', damage: d, base: d, guarded: false, kind: 'fire', text: `${h.name} takes ${d} fire damage.` };
+  } else if (id === 'lull') {
+    b.heroSleep = STATUS.sleepTurns;
+    yield { type: 'status', who: 'hero', status: 'sleep', on: true, text: `${h.name} nods off!` };
+  } else yield { type: 'say', text: 'Nothing happens.' };
+}
+
+/** At half its HP the Gloam drops its mask: stronger, and armed with the wardens' moves, each told a turn ahead. */
+function* unmask(b: Battle, f: Foe): BattleScript {
+  f.masked = false;
+  f.atk += GLOAM_UNMASKED.atk;
+  f.move = 0;
+  f.big = GLOAM_UNMASKED.moves[0];
+  f.beat = 1;
+  f.charged = false;
+  b.lastSpell = null;
+  yield { type: 'unmask', foe: b.foes.indexOf(f), text: "The Gloam's mask cracks! Its true shape pours out, vast and dark." };
+}
+
+/** A warden's big move, told a turn ahead. The unmasked Gloam moves on to its next stolen move. */
 function* bigMove(b: Battle, f: Foe, big: BigMove): BattleScript {
   const i = b.foes.indexOf(f), h = b.hero;
+  if (f.gloam) { f.move = (f.move + 1) % GLOAM_UNMASKED.moves.length; f.big = GLOAM_UNMASKED.moves[f.move]; }
   yield { type: 'big', foe: i, text: big.name };
   if (big.kind === 'blow') {
     const guard = (yield { type: 'foeStrike', foe: i }) === true;
@@ -422,7 +471,7 @@ function* sweep(b: Battle): BattleScript {
   for (const [i, f] of b.foes.entries()) {
     if (f.freed || f.gone || f.hp > 0) continue;
     f.freed = true;
-    yield { type: 'freed', foe: i, text: `${The(f)} shakes off the Gloam and runs for home!` };
+    yield { type: 'freed', foe: i, text: f.gloam ? 'The Gloam breaks apart like fog at sunrise!' : `${The(f)} shakes off the Gloam and runs for home!` };
   }
 }
 
@@ -431,6 +480,7 @@ function* victory(b: Battle): BattleScript {
   h.gold += gold;
   b.outcome = 'won';
   if (!b.foes.some((f) => f.freed)) { yield { type: 'reward', xp: 0, gold: 0, text: 'The foes are gone.' }; return; }
+  if (b.foes.some((f) => f.gloam)) { yield { type: 'reward', xp: 0, gold: 0, text: 'The Gloam is gone. Morning comes to the kingdom.' }; return; }
   yield { type: 'reward', xp, gold, text: `Victory! Valor +${xp}, gold +${gold}.` };
   for (const lv of gainValor(h, xp)) {
     const learned = (Object.keys(SPELLS) as SpellId[]).filter((id) => SPELLS[id].lv === lv);
@@ -453,18 +503,21 @@ export function runScript(script: BattleScript, answer: (e: BattleEvent) => bool
 }
 
 /**
- * Plays a whole battle with a simple policy, for tests and the balance probe: herb or Mend when low, else strike
- * the weakest foe, Valor on a share of rings. Returns the outcome and the number of rounds.
+ * Plays a whole battle with a simple policy, for tests and the balance probe: when low, Restore, Mend or a herb
+ * (herbs first while the Gloam is masked, since it copies spells), else strike the weakest foe, Valor on a share of
+ * rings. Returns the outcome and the number of rounds.
  */
 export function autoplay(b: Battle, { valorRate = 0, flee = false, heal: useHeals = true } = {}) {
   const answer = (e: BattleEvent) => (e.type === 'heroStrike' || e.type === 'foeStrike' ? b.rng() < valorRate : undefined);
   runScript(opening(b), answer);
   let rounds = 0;
   while (!b.outcome && rounds < 200) {
-    const h = b.hero, low = h.hp < maxHp(h) * 0.35;
+    const h = b.hero, low = h.hp < maxHp(h) * 0.35, mirror = living(b).some((f) => f.gloam && f.masked);
+    const spell = (['restore', 'mend'] as SpellId[]).find((id) => battleSpells(b).includes(id) && canCast(b, id));
     let action: Action;
     if (flee) action = { type: 'flee' };
-    else if (useHeals && low && battleSpells(b).includes('mend') && canCast(b, 'mend')) action = { type: 'spell', spell: 'mend' };
+    else if (useHeals && low && mirror && canUse(b, 'herb')) action = { type: 'item', item: 'herb' };
+    else if (useHeals && low && spell) action = { type: 'spell', spell };
     else if (useHeals && low && canUse(b, 'herb')) action = { type: 'item', item: 'herb' };
     else action = { type: 'fight', target: b.foes.indexOf(living(b).sort((a, c) => a.hp - c.hp)[0]) };
     runScript(round(b, action), answer);

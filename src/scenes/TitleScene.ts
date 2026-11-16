@@ -75,7 +75,7 @@ export class TitleScene extends Phaser.Scene {
     WARDENS.forEach((key, i) => face(this.add.image(cx + 120 + (i % 2) * 18, 74 + Math.floor(i / 2) * 18, key), key, false));
 
     const s = this.save;
-    const labels = { continue: s ? `CONTINUE  ${s.hero.name}  LV ${s.hero.lv}` : '', new: 'NEW JOURNEY' };
+    const labels = { continue: s ? `CONTINUE  ${s.hero.name}  LV ${s.hero.lv}${s.done ? '  ·  COMPLETE' : ''}` : '', new: 'NEW JOURNEY' };
     const top = this.options.length > 1 ? 98 : 106;
     this.optionTexts = this.options.map((o, i) => {
       const t = text(cx, top + i * 14, labels[o], this.options.length > 1 ? 8 : 16, TEXT.ink);

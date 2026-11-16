@@ -116,9 +116,9 @@ export class BattleScene extends Phaser.Scene {
     void this.run();
   }
 
-  /** A foe's sprite: 2x, or 3x for a warden (standing on the same ground line). */
+  /** A foe's sprite: 2x, or 3x for a warden or the Gloam (standing on the same ground line). */
   private addFoe(id: CreatureId, x: number, i: number) {
-    const big = 'big' in CREATURES[id], y = big ? FOE_Y - 8 : FOE_Y + (i % 2) * 8;
+    const big = 'big' in CREATURES[id] || 'gloam' in CREATURES[id], y = big ? FOE_Y - 8 : FOE_Y + (i % 2) * 8;
     return this.track(face(this.add.image(x, y, creatureTexture(id)).setScale(big ? 3 : 2).setDepth(2), CREATURES[id].slot, false));
   }
 
@@ -280,6 +280,17 @@ export class BattleScene extends Phaser.Scene {
         this.fx.flash(0.35);
         this.fx.shake(3);
         await this.wait(700);
+        return undefined;
+      }
+      case 'unmask': {
+        const img = this.foeImgs[e.foe];
+        this.say(e.text);
+        playSound(this, 'roar');
+        this.fx.flash(0.6);
+        this.fx.shake(5);
+        this.fx.burst(img.x, img.y, [COLORS.gloam, 0x2a1a40, 0xffffff], [30, 90, 900]);
+        this.tweens.add({ targets: img, scale: 4, y: FOE_Y - 16, duration: 900, ease: 'Back.out' });
+        await this.wait(1600);
         return undefined;
       }
       case 'foeStrike': {

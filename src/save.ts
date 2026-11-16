@@ -8,9 +8,11 @@ import { maxHp, maxMp, type Journey } from './state';
 const isInt = (n: unknown, lo: number, hi: number): n is number => Number.isInteger(n) && (n as number) >= lo && (n as number) <= hi;
 const isObj = (o: unknown): o is Record<string, unknown> => typeof o === 'object' && o !== null && !Array.isArray(o);
 
-/** A version 1 save (before dungeons) gains the dungeon fields, empty. */
+/** Older saves are brought up to date a version at a time. Version 1 (before dungeons) gains the dungeon fields, empty. */
 const UPGRADE: Record<number, (j: Record<string, unknown>) => void> = {
   1: (j) => { j.opened = []; j.torch = false; j.glow = 0; },
+  /** Version 2 (before the Gloam could be beaten): not done. */
+  2: (j) => { j.done = false; },
 };
 
 /** The width and height of an area's map, or null if there's no such area. */
@@ -52,11 +54,11 @@ export function parseJourney(d: unknown): Journey | null {
   if (!size) return null;
   const [w, hgt] = size;
   if (j.at !== null && !(isObj(j.at) && isInt(j.at.x, 0, w - 1) && isInt(j.at.y, 0, hgt - 1))) return null;
-  if (!isInt(j.sinceFight, 0, 1e7) || !isInt(j.ward, 0, 1e4) || !isInt(j.glow, 0, 1e4) || typeof j.torch !== 'boolean') return null;
+  if (!isInt(j.sinceFight, 0, 1e7) || !isInt(j.ward, 0, 1e4) || !isInt(j.glow, 0, 1e4) || typeof j.torch !== 'boolean' || typeof j.done !== 'boolean') return null;
   // Opened chests and doors: 'area:x,y' on a real floor, each at most once.
   if (!Array.isArray(j.opened) || j.opened.length > 200 || new Set(j.opened).size !== j.opened.length) return null;
   for (const o of j.opened) {
-    const m = typeof o === 'string' ? /^([1-4]\.\d):(\d{1,2}),(\d{1,2})$/.exec(o) : null;
+    const m = typeof o === 'string' ? /^([1-4G]\.\d):(\d{1,2}),(\d{1,2})$/.exec(o) : null;
     const s = m && parseFloor(m[1]) ? areaSize(m[1]) : null;
     if (!m || !s || Number(m[2]) >= s[0] || Number(m[3]) >= s[1]) return null;
   }
@@ -70,7 +72,7 @@ export function parseJourney(d: unknown): Journey | null {
   const at = j.at === null ? null : { x: (j.at as { x: number }).x, y: (j.at as { y: number }).y };
   return {
     hero, lit: [...(j.lit as boolean[])], area: j.area as string, at, sinceFight: j.sinceFight, ward: j.ward,
-    opened: [...(j.opened as string[])], torch: j.torch, glow: j.glow,
+    opened: [...(j.opened as string[])], torch: j.torch, glow: j.glow, done: j.done,
   };
 }
 

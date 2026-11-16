@@ -5,6 +5,7 @@ import { DUNGEONS, floorArea, parseFloor } from '../data/dungeons';
 import { SITES, TOWNS } from '../data/maps';
 import { openChest } from '../field';
 import { PEOPLE, type Person } from '../data/people';
+import { writeSave } from '../save';
 import { playSound, toggleMute } from '../sfx';
 import { face } from '../sprites';
 import { STATE, addItem, count, goHome, heroDef, lightRadius, maxHp, maxMp, newJourney, stepEffects, takeItem, wakeAtShrine, type Journey } from '../state';
@@ -128,13 +129,19 @@ export class WorldScene extends Phaser.Scene {
     const add = (kind: 'chest' | 'warden' | 'brazier', x: number, y: number, key: string) =>
       this.props.push({ kind, x, y, img: this.add.image(x * TILE + TILE / 2, y * TILE + TILE / 2, key).setDepth(2) });
     for (const c of chestsOn(m, this.journey.opened)) add('chest', c.x, c.y, 'chest');
-    const d = DUNGEONS[m.site!], lit = this.journey.lit[d.beacon];
+    const d = DUNGEONS[m.site!], lit = this.cleared(m.site!);
     m.grid.forEach((row, y) => row.forEach((t, x) => { if (t === '^') add('brazier', x, y, 'beacon'); }));
     for (const b of this.props) if (b.kind === 'brazier' && !lit) b.img.setTint(0x5b5670);
     if (m.sites.W && !lit) {
       add('warden', m.sites.W.x, m.sites.W.y, CREATURES[d.warden].slot);
       face(this.props.at(-1)!.img, CREATURES[d.warden].slot as SpriteKey, false);
     }
+  }
+
+  /** A dungeon's warden is freed (its beacon burns), or for the Hollow, the Gloam is beaten. */
+  cleared(site: string) {
+    const b = DUNGEONS[site].beacon;
+    return b < 0 ? this.journey.done : this.journey.lit[b];
   }
 
   private propAt(x: number, y: number) {
@@ -223,10 +230,9 @@ export class WorldScene extends Phaser.Scene {
     if (this.map.kind === 'dungeon' && (key === '<' || key === '>')) { this.takeStairs(key); return; }
     const site = this.map.kind === 'world' ? SITES[key] : undefined;
     if (site) {
-      if (site.kind === 'town') { this.enterTown(key); return; }
-      if (site.kind === 'beacon' && DUNGEONS[key]) { this.enterFloor(key, 0, '<'); return; }
-      this.place = { name: site.name, t: 2.5 };
-      playSound(this, 'arrive');
+      // Towns and the hermit's hut, or down into a dungeon (a beacon tower, or the Hollow).
+      if (site.kind === 'town') this.enterTown(key);
+      else this.enterFloor(key, 0, '<');
       return;
     }
     if (this.calm) return;
@@ -292,9 +298,25 @@ export class WorldScene extends Phaser.Scene {
   /** Bumping into the warden: no way past but through it. */
   fightWarden() {
     const d = DUNGEONS[this.map.site!];
-    if (this.mode !== 'walk' || this.journey.lit[d.beacon]) return;
+    if (this.mode !== 'walk' || this.cleared(this.map.site!)) return;
     this.fight([d.warden], d.ground);
     this.wardenFight = d.beacon;
+  }
+
+  /**
+   * The Gloam is beaten: the crusade is complete. The journey is saved at the home shrine, rested, with the flag set,
+   * and the ending plays.
+   */
+  finale() {
+    const j = this.journey, h = j.hero;
+    j.done = true;
+    h.hp = maxHp(h);
+    h.mp = maxMp(h);
+    h.poisoned = false;
+    goHome(j);
+    writeSave(j);
+    this.cameras.main.fadeOut(0);
+    this.time.delayedCall(60, () => this.scene.start('ending'));
   }
 
   /** A warden is freed: its beacon burns again and its region takes back its colour. */
@@ -406,7 +428,8 @@ export class WorldScene extends Phaser.Scene {
     this.journey.sinceFight = 0;
     const warden = this.wardenFight;
     this.wardenFight = null;
-    if (outcome === 'won' && warden !== null) this.lightBeacon(warden);
+    if (outcome === 'won' && warden !== null && warden >= 0) this.lightBeacon(warden);
+    if (outcome === 'won' && warden === -1) { this.finale(); return; }
     if (outcome === 'lost') {
       const lost = wakeAtShrine(this.journey), home = this.journey.hero.home;
       this.facing = 'up';
@@ -475,7 +498,7 @@ export class WorldScene extends Phaser.Scene {
   private drawFires() {
     const g = this.fires.clear();
     if (this.map.kind === 'dungeon') {
-      if (!this.journey.lit[DUNGEONS[this.map.site!].beacon]) return;
+      if (!this.cleared(this.map.site!)) return;
       for (const b of this.props) if (b.kind === 'brazier') g.fillStyle(COLORS.gold, 0.18).fillCircle(b.x * TILE + 8, b.y * TILE + 6, 14 + Math.sin(this.clock * 6) * 1.5);
       return;
     }
@@ -501,7 +524,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.map.kind !== 'dungeon') return;
     const p = this.heroPixel(), hx = p.x / TILE, hy = p.y / TILE, r = lightRadius(this.journey);
     const lights = [{ x: hx, y: hy, r }];
-    for (const b of this.props) if (b.kind === 'brazier' && this.journey.lit[DUNGEONS[this.map.site!].beacon]) lights.push({ x: b.x, y: b.y, r: 3 });
+    for (const b of this.props) if (b.kind === 'brazier' && this.cleared(this.map.site!)) lights.push({ x: b.x, y: b.y, r: 3 });
     const v = this.cameras.main.worldView;
     const x0 = Math.max(0, Math.floor(v.x / TILE)), y0 = Math.max(0, Math.floor(v.y / TILE));
     const x1 = Math.min(this.map.w - 1, Math.ceil(v.right / TILE)), y1 = Math.min(this.map.h - 1, Math.ceil(v.bottom / TILE));

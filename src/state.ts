@@ -39,6 +39,8 @@ export interface Journey {
   torch: boolean;
   /** Steps of Glow left. */
   glow: number;
+  /** The Gloam is beaten: the crusade is complete. */
+  done: boolean;
 }
 
 export const levelRow = (lv: number) => LEVELS[Math.max(1, Math.min(LEVELS.length, lv)) - 1];
@@ -77,7 +79,7 @@ export function newJourney(): Journey {
   };
   hero.hp = maxHp(hero);
   hero.mp = maxMp(hero);
-  return { hero, lit: [false, false, false, false], area: 'world', at: null, sinceFight: 0, ward: 0, opened: [], torch: false, glow: 0 };
+  return { hero, lit: [false, false, false, false], area: 'world', at: null, sinceFight: 0, ward: 0, opened: [], torch: false, glow: 0, done: false };
 }
 
 /** Puts the hero in their home town, before the shrine keeper (Homeward, and waking after a fall). */

@@ -6,15 +6,16 @@ import type { CreatureId, GearId, Ground, ItemId } from '../config';
 export type Loot = { gold: number } | { item: ItemId; n?: number } | { gear: GearId };
 
 export interface Dungeon {
-  /** Its beacon, 0-3, which is also its region. */
+  /** Its beacon, 0-3, which is also its region; -1 for the Hollow, which has none. */
   beacon: number;
   /** The battle ground: backdrop, encounter pool and tile colours. */
   ground: Ground;
+  /** Its warden, or for the Hollow, the Gloam. */
   warden: CreatureId;
   /**
    * Floors from the entrance down (or up). # wall (and * ice wall in the Spire), . floor, , rubble, < stairs out
    * (toward the entrance), > stairs on, $ chest, | locked door (one iron key), ^ the beacon's brazier,
-   * W the warden, ~ water, B planks, + pillar.
+   * W the warden (or the Gloam), ~ water, B planks, + pillar.
    */
   floors: string[][];
   /** Each floor's chests in reading order (top row first, left to right). */
@@ -219,6 +220,68 @@ export const DUNGEONS: Record<string, Dungeon> = {
       [],
       ],
   },
+  // Gloam's Hollow: behind the Gloam's wall, open once all four beacons burn.
+  G: {
+    beacon: -1, ground: 'hollow', warden: 'gloam',
+    floors: [
+      [
+        '##############################',
+        '#.....#......,.....#........>#',
+        '#.###.#.##########.#.######..#',
+        '#.#$#.#.#........#.#.#....#..#',
+        '#.#.#...#.######.#...#.##.#..#',
+        '#.#.#####.#$...#.#####.#..#..#',
+        '#.#.......#....#.......#.##..#',
+        '#.#########.##.#########.....#',
+        '#...........#..........#.###.#',
+        '###########.#.########.#.#$#.#',
+        '#.........#.#.#......#.#.#.#.#',
+        '#.#######.#...#.####.#...#.#.#',
+        '#.......#.#####.#..........#.#',
+        '#######<#.......#.############',
+        '##############################',
+      ],
+      [
+        '##############################',
+        '#<.....+.....+.....+........##',
+        '#.##########################.#',
+        '#.#.........,.........$....#.#',
+        '#.#.+...+...+...+...+...+..#.#',
+        '#.#..........................#',
+        '#.#.+...+...+...+...+...+..#.#',
+        '#.#........................#.#',
+        '#.#######.##########.#######.#',
+        '#.........#$.......#.#.......#',
+        '#######.#.####|#####.#.#####.#',
+        '#$......#...........#.#..>.#.#',
+        '########################.#.#.#',
+        '#............................#',
+        '##############################',
+      ],
+      [
+        '##############################',
+        '##############################',
+        '##########...........#########',
+        '#########......W......########',
+        '########...............#######',
+        '########...+.......+...#######',
+        '########...............#######',
+        '########...+.......+...#######',
+        '########...............#######',
+        '#########.............########',
+        '##########.....<.....#########',
+        '##############################',
+        '##############################',
+        '##############################',
+        '##############################',
+      ],
+    ],
+    loot: [
+      [{ item: 'herb', n: 2 }, { gold: 300 }, { item: 'incense' }],
+      [{ gold: 400 }, { item: 'herb', n: 3 }, { item: 'remedy', n: 2 }],
+      [],
+    ],
+  },
 };
 
 /** A dungeon floor's area key, as the journey stores it: the site key and the floor, as in '2.1'. */
@@ -226,7 +289,7 @@ export const floorArea = (site: string, floor: number) => `${site}.${floor}`;
 
 /** The site and floor of a dungeon area key, or null for any other area. */
 export function parseFloor(area: string): { site: string; floor: number } | null {
-  const m = /^([1-4])\.(\d)$/.exec(area);
+  const m = /^([1-4G])\.(\d)$/.exec(area);
   if (!m || !DUNGEONS[m[1]] || Number(m[2]) >= DUNGEONS[m[1]].floors.length) return null;
   return { site: m[1], floor: Number(m[2]) };
 }

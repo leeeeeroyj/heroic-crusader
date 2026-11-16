@@ -29,6 +29,7 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 - **Creatures with tricks.** Rooks snatch your gold, wolves howl for the pack, toads poison, wisps hush your spells, cairns brace behind stone.
 - **Eight spells** learned as you rise, from Mend and Spark to Flare and Homeward.
 - **Four beacon dungeons,** dark below ground, with chests, locked vaults and a warden at the top of each. Free the warden and its beacon burns again.
+- **The Gloam itself,** waiting at the bottom of its Hollow once all four beacons burn. It fights in two forms, and beating it brings the dawn.
 - **Towns to rest in.** Three towns and a hermit's hut, with a smith, a grocer, an inn and a shrine where you record your journey. Name your squire, save, and carry on later.
 - **Hand-drawn map, code-drawn tiles.** Forests, hills, rivers, mountains, roads and battle backdrops are all painted in code.
 - **Keyboard or controller,** with hints that follow the last one you touched.
@@ -39,7 +40,7 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 - Mountains and rivers block the way; bridges and roads get you across.
 - Step onto a town to go in; walk out through the gap at the bottom to leave. Step onto a beacon tower to go down into its dungeon.
 - Esc (or Start) opens the menu: your squire's status, spells and items to use on the road, and the way back to the title.
-- The four flames at the top right are the beacons: grey while cold, burning once lit. The wall round Gloam's Hollow, in the far north-east, stays shut until all four burn.
+- The four flames at the top right are the beacons: grey while cold, burning once lit. The wall round Gloam's Hollow, in the far north-east, stands until all four burn; then it falls and the Hollow is open.
 - The top left shows your squire: name, level, HP, MP and gold. HP turns green while you're poisoned.
 
 ### Towns
@@ -56,6 +57,7 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 
 - Your journey is saved only at a shrine, in one slot in this browser. The title screen then offers **Continue**.
 - **New journey** asks for your squire's name: type up to eight letters, then press Enter. A controller keeps the name Wren.
+- Beating the Gloam saves your journey for you, marked **complete**. Continue after that to walk the bright kingdom again.
 
 ### Dungeons
 
@@ -72,6 +74,14 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 | Sir Croakley | Drowned Belfry | 150 | 46 | 30 | 200 | 200 | 14-20 damage and poison, no guarding |
 | Old Rime | Rime Spire | 210 | 58 | 40 | 500 | 400 | 22-30 damage, no guarding |
 | Hollow Regent | Sunder Keep | 200 | 72 | 44 | 900 | 600 | takes 20-26 HP and heals itself by as much |
+
+### Gloam's Hollow
+
+- Once the wall is down, step onto the Hollow to go down. It has three dark floors, the Gloam's own creatures, and a few chests. A locked vault on the second floor holds a chest.
+- The Gloam waits at the heart of the third floor: 440 HP, attack 74, defence 48. As with a warden, there's no fleeing it and Lull won't touch it.
+- **Masked,** it copies the last spell you cast: Mend or Restore heals it, Spark or Flare burns you, Lull puts you to sleep. Herbs are the safer way to heal while it wears the mask.
+- **At half its HP the mask cracks.** It grows, hits harder (attack 82) and turns each warden's big move on you in turn: the boar's charge, bog breath with poison, frost wind and the wave of gloom. Each is told a turn ahead.
+- Beat it and the kingdom wakes: the ending plays, then the credits.
 
 ### Fights
 
@@ -98,10 +108,11 @@ Heroic Crusader is an original role-playing game inspired by the mechanics of Ch
 | Frostwisp | Snow, Rime Spire | 26 | 26 | 22 | 20 | 20 | 22 | casts Hush; dodges strikes |
 | Rustguard | Ruins, Sunder Keep | 40 | 42 | 40 | 8 | 30 | 35 | — |
 | Cairn | Ruins, Sunder Keep | 60 | 46 | 34 | 4 | 34 | 30 | braces every other turn |
-| Gloombat | Ruins, Sunder Keep | 30 | 40 | 26 | 24 | 24 | 25 | drinks all the HP it takes |
+| Gloombat | Ruins, Sunder Keep, Gloam's Hollow | 30 | 40 | 26 | 24 | 24 | 25 | drinks all the HP it takes |
 | Grim Rook | Ruins, Sunder Keep | 28 | 36 | 24 | 22 | 22 | 28 | snatches gold and flies off; casts Spark (12-18) |
-| Shadefang | Sunder Keep | 50 | 56 | 34 | 26 | 45 | 40 | howls for help |
-| Ironguard | Sunder Keep | 64 | 60 | 60 | 10 | 55 | 60 | — |
+| Shadefang | Sunder Keep, Gloam's Hollow | 50 | 56 | 34 | 26 | 45 | 40 | howls for help |
+| Ironguard | Sunder Keep, Gloam's Hollow | 64 | 60 | 60 | 10 | 55 | 60 | — |
+| Obsidian Cairn | Gloam's Hollow | 96 | 64 | 48 | 6 | 60 | 50 | braces every other turn |
 
 A blow does (attack − defence ÷ 2) × 0.35 to 0.5. Your squire starts at LV 1 with an Oak Stick (+4 attack), a Quilted Tunic (+2 defence), two herbs and 20 gold.
 
@@ -171,12 +182,12 @@ src/
   field.ts           spells, items and chests on the map
   data/maps.ts       the overworld, its sites and the town maps
   data/people.ts     townsfolk, their lines and their shops
-  data/dungeons.ts   the beacon dungeons: floors, chests and wardens
+  data/dungeons.ts   the beacon dungeons and the Hollow: floors, chests and wardens
   tiles.ts           code-drawn tiles, battle backdrops and recoloured kin
   controls.ts        keyboard and gamepad input
   effects.ts         sparks, shake and flash
   sfx.ts             procedural sound effects
-  scenes/            title screen, the world, towns and dungeons, battles, talking, the menu and the HUD
+  scenes/            title screen, the world, towns and dungeons, battles, talking, the menu, the HUD and the ending
 assets/sprites/      the game's 16 × 16 sprites
 design/              concept sheet and build plan
 tools/sprites.py     sprite search and export script

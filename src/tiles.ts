@@ -24,6 +24,7 @@ const DEEP: Partial<Record<Ground, { wall: string; wall2: string; top: string; f
   belfry: { wall: '#3e5250', wall2: '#2b3a39', top: '#5d7a6a', floor: '#55665c', seam: '#45544c', fleck: '#7fae5e' },
   spire: { wall: '#4e6488', wall2: '#36486a', top: '#a9c4e8', floor: '#7d90b0', seam: '#677a9a', fleck: '#e8eef8' },
   keep: { wall: '#5a4650', wall2: '#3e3038', top: '#7d6670', floor: '#6c5a5e', seam: '#5a4a4e', fleck: '#a8323a' },
+  hollow: { wall: '#3a2458', wall2: '#22143a', top: '#5a3a86', floor: '#3e2e56', seam: '#2f2244', fleck: '#9d7be0' },
 };
 
 function paintDungeon(g: CanvasRenderingContext2D, map: WorldMap, t: string, x: number, y: number) {

@@ -55,7 +55,7 @@ const pure = await evaluate(`(async () => {
   const types = (ev) => ev.map((e) => e.type);
   const r = {};
 
-  r.roster = Object.values(C.CREATURES).filter((c) => !c.big).length;
+  r.roster = Object.values(C.CREATURES).filter((c) => !c.big && !c.gloam).length;
   r.pools = Object.entries(C.POOLS).flatMap(([g, groups]) => groups.flat().filter((id) => !C.CREATURES[id]).map((id) => g + ':' + id));
   r.kin = Object.entries(C.CREATURES).filter(([, c]) => 'tint' in c).map(([id]) => id).filter((id) => !${G}.textures.exists('kin-' + id));
 
@@ -183,7 +183,7 @@ const pure = await evaluate(`(async () => {
   return r;
 })()`);
 
-check('the roster has 17 creatures (wardens aside) and every pool names real ones', pure.roster === 17 && pure.pools.length === 0, `${pure.roster}; ${pure.pools.join(', ')}`);
+check('the roster has 17 creatures (wardens and the Gloam aside) and every pool names real ones', pure.roster === 17 && pure.pools.length === 0, `${pure.roster}; ${pure.pools.join(', ')}`);
 check('every recoloured kin is baked', pure.kin.length === 0, pure.kin.join(', '));
 check('spores put the hero to sleep for a turn', pure.sleep.slept && pure.sleep.noStrike && pure.sleep.awake, JSON.stringify(pure.sleep));
 check('a Bogtoad bite poisons', pure.bite);
@@ -317,7 +317,7 @@ check('the Rook flew off with the gold and the fight ended', await evaluate(`${W
 
 // ---- The whole roster, three at a time ----
 // Wardens have their own test (milestone 5).
-const roster = await evaluate(`(async () => Object.entries((await import('/src/config.ts')).CREATURES).filter(([, c]) => !c.big).map(([id]) => id))()`);
+const roster = await evaluate(`(async () => Object.entries((await import('/src/config.ts')).CREATURES).filter(([, c]) => !c.big && !c.gloam).map(([id]) => id))()`);
 const grounds = ['meadow', 'marsh', 'snow', 'ruins', 'barrow', 'hollow'];
 for (let i = 0; i < roster.length; i += 3) {
   const ids = roster.slice(i, i + 3), ground = grounds[i / 3];

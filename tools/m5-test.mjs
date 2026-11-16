@@ -47,7 +47,7 @@ const pure = await evaluate(`(async () => {
     const tag = site + '.' + fi, w = rows[0].length, last = fi === d.floors.length - 1;
     const n = (c) => rows.join('').split(c).length - 1;
     if (!rows.every((row) => row.length === w) || w < 26 || rows.length < 15) r.floors.push(tag + ' size');
-    if (n('<') !== 1 || n('>') !== (last ? 0 : 1) || n('W') !== (last ? 1 : 0) || (last && n('^') < 1)) r.floors.push(tag + ' stairs/warden/brazier');
+    if (n('<') !== 1 || n('>') !== (last ? 0 : 1) || n('W') !== (last ? 1 : 0) || (last && d.beacon >= 0 && n('^') < 1)) r.floors.push(tag + ' stairs/warden/brazier');
     if (n('$') !== d.loot[fi].length) r.floors.push(tag + ' chests ' + n('$') + ' vs loot ' + d.loot[fi].length);
     for (const l of d.loot[fi]) if (!('gold' in l) && !('item' in l ? C.ITEMS[l.item] : C.GEAR[l.gear])) r.loot.push(tag + ' ' + JSON.stringify(l));
     // With every door shut and no key: from the stairs in, the way on (the next stairs, or the warden) is open.
@@ -119,7 +119,7 @@ const pure = await evaluate(`(async () => {
       bad((x) => { x.opened = ['3.1:5,4', '3.1:5,4']; }), bad((x) => { x.opened = ['3.1:99,4']; }), bad((x) => { x.torch = 'yes'; }), bad((x) => { x.glow = -1; })]; }
   return r;
 })()`);
-check('every floor is at least 26 x 15, with its stairs, chests to match its loot, and a warden and brazier at the top', pure.floors.length === 0 && pure.loot.length === 0, [...pure.floors, ...pure.loot].join('; '));
+check('every floor is at least 26 x 15, with its stairs, chests to match its loot, and a warden (and brazier) at the top', pure.floors.length === 0 && pure.loot.length === 0, [...pure.floors, ...pure.loot].join('; '));
 check('with every door shut and no keys, the way to each warden is open', pure.ways.length === 0, pure.ways.join(', '));
 check('every stairway has open ground beside it', pure.stairs.length === 0, pure.stairs.join(', '));
 check('every locked door can be walked up to', pure.doors.length === 0, pure.doors.join(', '));

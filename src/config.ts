@@ -53,7 +53,7 @@ export type GearSlot = (typeof GEAR)[GearId]['slot'];
 export const INN: Record<string, number> = { C: 6, V: 12, F: 20 };
 
 /** The one save slot in localStorage. Bump the version when the journey's shape changes. */
-export const SAVE = { key: 'heroic-crusader-save', version: 2 } as const;
+export const SAVE = { key: 'heroic-crusader-save', version: 3 } as const;
 
 /** Townsfolk drawn as recolours of a picked sprite, baked at load like the creature kin. */
 export const NPC_KIN = { hermit: { base: 'villager', tint: { hue: 140, sat: 0.5, light: 0.8 } } } as const;
@@ -176,6 +176,8 @@ export interface CreatureDef {
   /** A proper name: no "the" before it. */
   proper?: boolean;
   big?: BigMove;
+  /** The Gloam: copies the hero's last spell, then unmasks at half HP and turns the wardens' moves on the hero. */
+  gloam?: boolean;
 }
 
 /**
@@ -219,9 +221,24 @@ export const CREATURES = {
     intro: 'The Hollow Regent rises from the throne of Sunder Keep!',
     big: { name: 'A wave of gloom pours from the crown!', tell: 'The Regent raises its crown. Shadows gather...', kind: 'drain', dmg: [20, 26] },
   },
+  gloam: {
+    name: 'Gloam', slot: 'gloam', hp: 440, atk: 74, def: 48, agi: 22, xp: 0, gold: 0, gloam: true,
+    intro: 'The dark at the heart of the Hollow gathers itself. The Gloam is here!',
+  },
   obsidian: { name: 'Obsidian Cairn', slot: 'golem', tint: { hue: 250, sat: 1.2, light: 0.6 }, hp: 96, atk: 64, def: 48, agi: 6, xp: 60, gold: 50, traits: { brace: true } },
 } as const satisfies Record<string, CreatureDef>;
 export type CreatureId = keyof typeof CREATURES;
+
+/** The Gloam unmasked: the wardens' big moves in turn, each told a turn ahead, and its attack rises by `atk`. */
+export const GLOAM_UNMASKED = {
+  atk: 8,
+  moves: [
+    { name: 'The Gloam charges like a boar!', tell: 'The Gloam paws at the dark and lowers its head...', kind: 'blow', mult: 2 },
+    { name: 'The Gloam spews a cloud of bog breath!', tell: 'The Gloam swells like a bellows...', kind: 'breath', dmg: [24, 32], poison: true },
+    { name: 'The Gloam breathes a howling frost wind!', tell: 'The Gloam draws in a long, cold breath...', kind: 'breath', dmg: [30, 40] },
+    { name: 'A wave of gloom pours out of the Gloam!', tell: 'Shadows gather round the Gloam...', kind: 'drain', dmg: [26, 34] },
+  ],
+} as const satisfies { atk: number; moves: readonly BigMove[] };
 
 /** Battle grounds: the backdrop and the encounter pool. Hills, each beacon dungeon and the Hollow have their own. */
 export const GROUNDS = ['meadow', 'hills', 'marsh', 'snow', 'ruins', 'barrow', 'belfry', 'spire', 'keep', 'hollow'] as const;

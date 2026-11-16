@@ -105,6 +105,7 @@ export class TalkScene extends Phaser.Scene {
         // Her charge is the first beacon still cold (or the Hollow, once all four burn).
         const cold = this.journey.lit.indexOf(false), lit = cold < 0 ? 4 : cold;
         const next = h.lv < LEVELS.length ? `You need ${toNext(h)} more Valor to reach LV ${h.lv + 1}.` : 'No knight of the realm stands stronger than you.';
+        if (this.journey.done) { this.say([`Welcome home, ${h.name}. The kingdom is bright again, and you have our thanks for ever.`]); break; }
         this.say([`Welcome, ${h.name}. ${QUEST[lit]}`, next]);
         break;
       }
